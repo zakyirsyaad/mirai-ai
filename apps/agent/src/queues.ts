@@ -48,7 +48,8 @@ export const reviewQueue = new Queue<PostJob>(QUEUE.Review, queueOpts());
 export const postQueue = new Queue<PostJob>(QUEUE.Post, queueOpts());
 export const recordQueue = new Queue<PostJob>(QUEUE.Record, queueOpts());
 
-/** Stable job id so the same (stage, post) is never enqueued twice. */
+/** Stable job id so the same (stage, post) is never enqueued twice.
+ *  BullMQ rejects `:` in custom IDs, so use `--` as the separator. */
 export function postJobId(stage: string, scheduledPostId: string): string {
-  return `${stage}:${scheduledPostId}`;
+  return `${stage}--${scheduledPostId}`;
 }

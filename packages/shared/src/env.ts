@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+/** Treat empty-string env vars (`KEY=`) as absent for optional fields. */
+const optionalStr = () =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().min(1).optional(),
+  );
+
 /**
  * Centralized, validated environment access. Every package/app reads config
  * through `loadEnv()` instead of touching `process.env` directly, so a missing
@@ -16,19 +23,19 @@ const EnvSchema = z.object({
   // CROO Network
   CROO_API_URL: z.string().url().default("https://api.croo.network"),
   CROO_WS_URL: z.string().url().default("wss://api.croo.network/ws"),
-  CROO_SDK_KEY: z.string().min(1).optional(),
+  CROO_SDK_KEY: optionalStr(),
 
   // X (Twitter)
   X_MODE: z.enum(["mock", "real"]).default("mock"),
-  X_CLIENT_ID: z.string().optional(),
-  X_CLIENT_SECRET: z.string().optional(),
+  X_CLIENT_ID: optionalStr(),
+  X_CLIENT_SECRET: optionalStr(),
   X_OAUTH_REDIRECT_URI: z
     .string()
     .url()
     .default("http://localhost:3000/api/x/callback"),
 
   // Anthropic
-  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: optionalStr(),
   CONTENT_MODEL: z.string().default("claude-sonnet-4-6"),
   CONTENT_MODEL_HQ: z.string().default("claude-opus-4-8"),
 
@@ -37,7 +44,7 @@ const EnvSchema = z.object({
   REDIS_URL: z.string().min(1).default("redis://localhost:6379"),
 
   // Token vault — 32-byte (64 hex char) key for AES-256-GCM.
-  TOKEN_VAULT_KEY: z.string().optional(),
+  TOKEN_VAULT_KEY: optionalStr(),
 
   // App
   WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
