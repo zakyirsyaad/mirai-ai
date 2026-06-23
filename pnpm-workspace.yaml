@@ -1,0 +1,20 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - msgpackr-extract
+
+# Force a single ioredis copy (BullMQ pins 5.10.1) so the Redis instance type
+# stays cross-assignable between our code and BullMQ's connection option.
+overrides:
+  ioredis: "5.10.1"
+allowBuilds:
+  '@prisma/client': set this to true or false
+  '@prisma/engines': set this to true or false
+  msgpackr-extract: set this to true or false
+  prisma: set this to true or false
+  sharp: set this to true or false

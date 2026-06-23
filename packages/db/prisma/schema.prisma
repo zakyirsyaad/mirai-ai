@@ -1,0 +1,202 @@
+// mirai-ai data model.
+//
+// Identity is wallet-as-identity: the buyer's wallet (from the CROO OrderPaid
+// event) anchors a time-boxed DashboardSession. The buyer signs into the
+// dashboard with the same wallet — no link delivery needed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Identity / access ───────────────────────────
+
+/// A 7-day access pass to the dashboard, keyed to the buyer's wallet address.
+model DashboardSession {
+  id              String        @id @default(cuid())
+  buyerWallet     String // lowercased EVM address from the CROO order
+  status          SessionStatus @default(ACTIVE)
+  accessExpiresAt DateTime
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  xConnection XConnection?
+  campaigns   Campaign[]
+  orders      Order[]
+
+  @@index([buyerWallet])
+}
+
+enum SessionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+/// Encrypted X OAuth tokens (AES-256-GCM via @mirai/shared vault).
+model XConnection {
+  id                    String   @id @default(cuid())
+  sessionId             String   @unique
+  session               DashboardSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  xUserId               String
+  xHandle               String
+  encryptedAccessToken  String
+  encryptedRefreshToken String
+  scope                 String
+  accessTokenExpiresAt  DateTime
+  tweetCount            Int      @default(0) // used to detect cold-start (empty account)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([xUserId])
+}
+
+// ─────────────────────────── Voice & content ───────────────────────────
+
+/// Derived/edited voice profile applied to all generated & rewritten posts.
+model VoiceProfile {
+  id         String            @id @default(cuid())
+  campaignId String            @unique
+  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  source     VoiceProfileSource
+  tone       String
+  topics     String[]
+  styleNotes String[]
+  doNots     String[]
+  sampleVoice String           @default("")
+  // Cold-start questionnaire answers (when source = QUESTIONNAIRE).
+  niche      String?
+  audience   String?
+  goal       String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+enum VoiceProfileSource {
+  DERIVED // from the account's existing tweets
+  QUESTIONNAIRE // cold-start: built from onboarding answers
+  MANUAL_OVERRIDE // user edited it in the dashboard
+}
+
+/// User-supplied raw content pool (USER_SUPPLIED mode).
+model ContentItem {
+  id         String            @id @default(cuid())
+  campaignId String
+  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  rawText    String
+  status     ContentItemStatus @default(PENDING)
+  usedByPostId String?
+  createdAt  DateTime          @default(now())
+
+  @@index([campaignId, status])
+}
+
+enum ContentItemStatus {
+  PENDING
+  USED
+}
+
+// ─────────────────────────── CROO order / campaign ───────────────────────────
+
+/// A paid CROO order. One order = one access pass = one campaign.
+model Order {
+  id            String      @id @default(cuid())
+  crooOrderId   String      @unique
+  negotiationId String?
+  buyerWallet   String
+  service       String // ServiceType from @mirai/shared
+  status        OrderStatus @default(PAID)
+  sessionId     String?
+  session       DashboardSession? @relation(fields: [sessionId], references: [id])
+  campaign      Campaign?
+  deliveredAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([buyerWallet])
+}
+
+enum OrderStatus {
+  PAID // OrderPaid received, work in progress
+  DELIVERED // deliverOrder() called
+  COMPLETED // OrderCompleted received
+  FAILED
+}
+
+/// The running content campaign for an order.
+model Campaign {
+  id              String         @id @default(cuid())
+  orderId         String         @unique
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sessionId       String
+  session         DashboardSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contentMode     ContentMode    @default(AUTONOMOUS)
+  enabled         Boolean        @default(true)
+  status          CampaignStatus @default(WAITING_FOR_X)
+  accessExpiresAt DateTime
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  voiceProfile   VoiceProfile?
+  contentItems   ContentItem[]
+  scheduledPosts ScheduledPost[]
+
+  @@index([status])
+}
+
+enum ContentMode {
+  AUTONOMOUS
+  USER_SUPPLIED
+}
+
+enum CampaignStatus {
+  WAITING_FOR_X // paid, but buyer hasn't connected X yet
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+// ─────────────────────────── Per-post pipeline ───────────────────────────
+
+/// One scheduled post moving through ACQUIRE → COMPOSE → REVIEW → POST → RECORD.
+model ScheduledPost {
+  id           String     @id @default(cuid())
+  campaignId   String
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  slotIndex    Int
+  scheduledFor DateTime
+  angle        String? // chosen angle / brief for this slot
+  stage        PostStage  @default(PLANNED)
+  // ACQUIRE output (raw material, persisted so retries don't re-fetch).
+  rawMaterial  String?
+  // COMPOSE output.
+  draftText    String?
+  // POST output.
+  tweetId      String?
+  tweetUrl     String?
+  postedAt     DateTime?
+  // RECORD output.
+  metrics      Json?
+  failureReason String?
+  attempts     Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([campaignId, slotIndex])
+  @@index([campaignId, stage])
+}
+
+enum PostStage {
+  PLANNED
+  ACQUIRED
+  COMPOSED
+  REVIEWED
+  POSTED
+  RECORDED
+  SKIPPED
+  FAILED
+}

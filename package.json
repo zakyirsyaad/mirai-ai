@@ -1,0 +1,32 @@
+{
+  "name": "mirai-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Autonomous X (Twitter) content agent on the CROO Network — hire it to generate and post in your voice.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:generate": "pnpm --filter @mirai/db generate",
+    "db:migrate": "pnpm --filter @mirai/db migrate",
+    "db:studio": "pnpm --filter @mirai/db studio",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "agent:dev": "pnpm --filter @mirai/agent dev",
+    "web:dev": "pnpm --filter @mirai/web dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

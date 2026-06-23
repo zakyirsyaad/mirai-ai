@@ -1,0 +1,42 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "CROO_API_URL",
+    "CROO_WS_URL",
+    "CROO_SDK_KEY",
+    "X_MODE",
+    "X_CLIENT_ID",
+    "X_CLIENT_SECRET",
+    "X_OAUTH_REDIRECT_URI",
+    "ANTHROPIC_API_KEY",
+    "CONTENT_MODEL",
+    "CONTENT_MODEL_HQ",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "TOKEN_VAULT_KEY",
+    "WEB_BASE_URL",
+    "AGENT_EVENT_CHANNEL"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {},
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
