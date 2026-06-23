@@ -25,7 +25,8 @@ import { campaignQueue } from "./queues.js";
  */
 
 const env = loadEnv();
-const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/** Fallback access window if the order carries no SLA deadline (defensive). */
+const FALLBACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 let client: CrooClient | undefined;
 
@@ -52,7 +53,10 @@ async function handleNegotiationCreated(
   // We accept every well-formed negotiation for our listed services.
   const parsed = OrderRequirementsSchema.safeParse(e.requirements);
   if (!parsed.success) {
-    await crooClient().rejectNegotiation(e.negotiationId);
+    await crooClient().rejectNegotiation(
+      e.negotiationId,
+      "requirements do not match a listed mirai-ai service",
+    );
     return;
   }
   await crooClient().acceptNegotiation(e.negotiationId);
@@ -64,7 +68,12 @@ async function handleOrderPaid(e: OrderPaidEvent): Promise<void> {
     ? parsed.data.service
     : ServiceType.ContentAgent7d;
   const buyerWallet = e.buyerWallet.toLowerCase();
-  const accessExpiresAt = new Date(Date.now() + WINDOW_MS);
+  // The order's on-chain SLA deadline is the source of truth for the access
+  // window; fall back to a 7-day window only if the event omitted it.
+  const slaTs = e.slaDeadline ? Date.parse(e.slaDeadline) : NaN;
+  const accessExpiresAt = Number.isNaN(slaTs)
+    ? new Date(Date.now() + FALLBACK_WINDOW_MS)
+    : new Date(slaTs);
 
   // Idempotent on crooOrderId — a redelivered event must not double-provision.
   const existing = await prisma.order.findUnique({

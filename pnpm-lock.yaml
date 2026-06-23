@@ -116,13 +116,13 @@ importers:
 
   packages/croo:
     dependencies:
-      '@croo-network/sdk':
-        specifier: '*'
-        version: 0.2.1
       '@mirai/shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
+      '@croo-network/sdk':
+        specifier: ^0.2.1
+        version: 0.2.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
