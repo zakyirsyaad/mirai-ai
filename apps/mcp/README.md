@@ -32,7 +32,9 @@ Generic MCP config:
 
 ## Hosted API
 
-The package defaults to hosted mode at `https://api.mirai-agent.com`.
+The package defaults to hosted mode at `http://mirai.43-129-56-85.sslip.io`
+while Mirai is running on the temporary VPS URL. This will move to
+`https://api.mirai-agent.com` after the production API domain is connected.
 
 To override the API URL:
 

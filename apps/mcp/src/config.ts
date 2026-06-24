@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-export const DEFAULT_MIRAI_API_URL = "https://api.mirai-agent.com";
+export const DEFAULT_MIRAI_API_URL = "http://mirai.43-129-56-85.sslip.io";
 export const DEFAULT_MIRAI_LICENSE_PUBLIC_KEY =
   "base64:LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUNvd0JRWURLMlZ3QXlFQUs5Q01namswQTNsSFRZREhNamhSS2NJemY2YkNkOGhFaUFsWU5JUFl5ZXM9Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=";
 

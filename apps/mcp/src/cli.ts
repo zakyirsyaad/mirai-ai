@@ -106,12 +106,16 @@ async function infra(action: string): Promise<void> {
 }
 
 function printMcpConfig(format: string): void {
+  const config = {
+    command: "mirai",
+    args: ["mcp"],
+    env: {
+      MIRAI_API_URL: DEFAULT_MIRAI_API_URL,
+    },
+  };
   const json = {
     mcpServers: {
-      mirai: {
-        command: "mirai",
-        args: ["mcp"],
-      },
+      mirai: config,
     },
   };
   if (format === "cursor" || format === "codex" || format === "claude") {
@@ -120,6 +124,7 @@ function printMcpConfig(format: string): void {
   }
   if (format === "hermes") {
     console.log("hermes mcp add mirai --command mirai --args mcp");
+    console.log(`hermes mcp env mirai MIRAI_API_URL ${DEFAULT_MIRAI_API_URL}`);
     console.log("hermes mcp test mirai");
     return;
   }
