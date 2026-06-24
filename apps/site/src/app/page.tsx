@@ -17,11 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const clients = ["Claude Code", "Codex", "Cursor", "Hermes", "MCP clients"];
+const clients = ["Codex", "Claude Code/CLI", "Hermes"];
 
 const steps = [
   ["Buy on CROO", "Choose a Mirai service and receive a signed access license."],
-  ["Add MCP", "Install the npm package and connect Mirai to your client."],
+    ["Install plugin", "Add the Mirai plugin/profile for your client."],
   ["Connect X", "OAuth tokens stay encrypted in the hosted worker runtime."],
   ["Approve once", "Mirai plans and runs the campaign until license expiry."],
 ];
@@ -53,12 +53,12 @@ export default function HomePage() {
         <div>
           <Badge>Available through CROO Marketplace</Badge>
           <h1 className="mt-6 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.03em] text-balance sm:text-6xl lg:text-7xl">
-            Mirai is an MCP-first agent for autonomous X campaigns.
+            Mirai is a plugin-first agent for autonomous X campaigns.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
             Buy once on CROO, activate a signed license, connect X, and let
-            Mirai run a 7-day, 14-post campaign from Claude Code, Codex,
-            Cursor, Hermes, or any MCP client.
+            Mirai run a 7-day, 14-post campaign from Codex, Claude Code/CLI,
+            or Hermes.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <CrooCta size="lg" />
@@ -82,7 +82,7 @@ export default function HomePage() {
           <div className="max-w-3xl">
             <Badge variant="secondary">CROO services</Badge>
             <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
-              Two focused services. One MCP-first runtime.
+              Two focused services. One plugin-first runtime.
             </h2>
           </div>
           <div className="mt-10 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">

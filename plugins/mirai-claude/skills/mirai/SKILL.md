@@ -1,6 +1,6 @@
 ---
 name: mirai
-description: Operate Mirai AI through Claude Code using the bundled Mirai MCP runtime.
+description: Operate Mirai AI through Claude Code/CLI using the bundled Mirai MCP runtime.
 ---
 
 # Mirai AI

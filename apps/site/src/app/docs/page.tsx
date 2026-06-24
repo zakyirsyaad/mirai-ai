@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Terminal } from "lucide-react";
 import { CodeBlock } from "@/components/code-block";
-import { ConfigGenerator } from "@/components/config-generator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,9 +17,6 @@ const claudePluginInstall = `claude plugin marketplace add zakyirsyaad/mirai-ai 
 claude plugin install mirai-claude@mirai-ai`;
 const hermesPluginInstall = `hermes plugins install zakyirsyaad/mirai-ai --enable
 hermes mcp add mirai --command npx --env MIRAI_API_URL=${siteConfig.defaultApiUrl} --args -y ${siteConfig.packageName}@latest mcp`;
-const cursorProfileInstall = `Copy from the Mirai repo:
-.cursor/mcp.json
-.cursor/rules/mirai.mdc`;
 
 const flow = [
   "mirai_activate_license",
@@ -59,9 +55,9 @@ export default function DocsPage() {
             Install Mirai as a plugin.
           </h1>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">
-            Use the plugin/profile for your client. Mirai still uses MCP under
-            the hood, but users do not need to install or configure the MCP
-            package manually.
+            Install the Mirai plugin/profile for Codex, Claude Code/CLI, or
+            Hermes. Mirai still uses MCP under the hood, but users do not need
+            to install the MCP package manually.
           </p>
         </div>
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -70,22 +66,14 @@ export default function DocsPage() {
             <CodeBlock value={codexPluginInstall} />
           </div>
           <div>
-            <div className="mb-3 text-sm font-semibold">Claude Code plugin</div>
+            <div className="mb-3 text-sm font-semibold">Claude Code/CLI plugin</div>
             <CodeBlock value={claudePluginInstall} />
           </div>
           <div>
             <div className="mb-3 text-sm font-semibold">Hermes plugin profile</div>
             <CodeBlock value={hermesPluginInstall} />
           </div>
-          <div>
-            <div className="mb-3 text-sm font-semibold">Cursor profile</div>
-            <CodeBlock value={cursorProfileInstall} />
-          </div>
         </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
-        <ConfigGenerator />
       </section>
 
       <section className="border-y border-border bg-card/70">

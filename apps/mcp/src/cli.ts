@@ -118,7 +118,7 @@ function printMcpConfig(format: string): void {
       mirai: config,
     },
   };
-  if (format === "cursor" || format === "codex" || format === "claude") {
+  if (format === "codex" || format === "claude") {
     console.log(JSON.stringify(json, null, 2));
     return;
   }
@@ -220,7 +220,7 @@ Usage:
   mirai doctor
   mirai init [--hosted --api-url https://api.example.com] [--force]
   mirai infra up|down
-  mirai config [json|local|claude|cursor|codex|hermes]
+  mirai config [json|local|claude|codex|hermes]
   mirai mcp
   mirai worker
   mirai start

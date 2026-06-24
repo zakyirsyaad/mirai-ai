@@ -12,10 +12,10 @@ import {
   type McpClient,
 } from "@/lib/site";
 
-const clients: McpClient[] = ["cursor", "claude", "codex", "hermes", "json"];
+const clients: McpClient[] = ["codex", "claude", "hermes", "json"];
 
 export function ConfigGenerator() {
-  const [client, setClient] = useState<McpClient>("cursor");
+  const [client, setClient] = useState<McpClient>("codex");
   const [apiUrl, setApiUrl] = useState(siteConfig.defaultApiUrl);
   const reducedMotion = useReducedMotion();
   const config = useMemo(() => buildMcpConfig(client, apiUrl), [apiUrl, client]);

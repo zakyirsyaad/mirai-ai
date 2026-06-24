@@ -6,7 +6,7 @@ brand
 
 ## Users
 
-Mirai's public website is for CROO Marketplace buyers, AI-agent builders, and plugin/client users who want to run X campaigns from tools such as Claude Code, Codex, Cursor, Hermes, or another MCP-capable client. They arrive from a marketplace listing, a docs link, or a demo and need to understand what Mirai does, how access works, and how to install it without creating a dashboard account.
+Mirai's public website is for CROO Marketplace buyers, AI-agent builders, and plugin/client users who want to run X campaigns from Codex, Claude Code/CLI, or Hermes. They arrive from a marketplace listing, a docs link, or a demo and need to understand what Mirai does, how access works, and how to install it without creating a dashboard account.
 
 ## Product Purpose
 

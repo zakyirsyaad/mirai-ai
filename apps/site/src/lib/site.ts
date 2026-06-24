@@ -6,11 +6,10 @@ export const siteConfig = {
   crooUrl: process.env.NEXT_PUBLIC_CROO_MARKETPLACE_URL ?? "",
 };
 
-export type McpClient = "cursor" | "claude" | "codex" | "hermes" | "json";
+export type McpClient = "claude" | "codex" | "hermes" | "json";
 
 export const clientLabels: Record<McpClient, string> = {
-  cursor: "Cursor",
-  claude: "Claude Code",
+  claude: "Claude Code/CLI",
   codex: "Codex",
   hermes: "Hermes",
   json: "Generic JSON",

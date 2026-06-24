@@ -4,7 +4,7 @@
 
 ### Plugin-first autonomous X content agent for the CROO Network
 
-_Give a user a license, a connected X account, and a campaign window. Mirai handles voice, ideas, scheduling, posting, expiry, and proof-of-work from Codex, Claude Code, Cursor, Hermes, or any MCP-capable client._
+_Give a user a license, a connected X account, and a campaign window. Mirai handles voice, ideas, scheduling, posting, expiry, and proof-of-work from Codex, Claude Code/CLI, or Hermes._
 
 ![CROO](https://img.shields.io/badge/CROO-Provider-65E84F?style=for-the-badge)
 ![MCP](https://img.shields.io/badge/MCP-stdio-111111?style=for-the-badge)
@@ -20,8 +20,7 @@ _Give a user a license, a connected X account, and a campaign window. Mirai hand
 
 Mirai AI is a CROO Provider agent backed by a hosted worker runtime. Buyers hire
 Mirai on CROO, receive a signed license key, connect their X account through
-hosted OAuth, and operate the agent from Claude Code, Codex, Cursor, Hermes, or
-any MCP-compatible client.
+hosted OAuth, and operate the agent from Codex, Claude Code/CLI, or Hermes.
 
 There is no private buyer dashboard. The product is intentionally plugin-first:
 
@@ -63,7 +62,7 @@ codex plugin marketplace add zakyirsyaad/mirai-ai --ref main --sparse .agents --
 codex plugin add mirai-codex@mirai-ai
 ```
 
-Claude Code:
+Claude Code/CLI:
 
 ```bash
 claude plugin marketplace add zakyirsyaad/mirai-ai --sparse .claude-plugin plugins/mirai-claude
@@ -75,12 +74,6 @@ Hermes:
 ```bash
 hermes plugins install zakyirsyaad/mirai-ai --enable
 hermes mcp add mirai --command npx --env MIRAI_API_URL=http://mirai.43-129-56-85.sslip.io --args -y @mirai-agent/mcp@latest mcp
-```
-
-Cursor:
-
-```text
-Use the repo's .cursor/mcp.json and .cursor/rules/mirai.mdc profile files.
 ```
 
 After installing a plugin/profile, restart the client and run Mirai:
@@ -103,8 +96,7 @@ that starts the same Mirai runtime through `npx`.
 | Client | Adapter | User installs |
 | --- | --- | --- |
 | Codex | `plugins/mirai-codex` + `.agents/plugins/marketplace.json` | Codex plugin marketplace entry |
-| Claude Code | `plugins/mirai-claude` + `.claude-plugin/marketplace.json` | Claude plugin marketplace entry |
-| Cursor | `.cursor/mcp.json` + `.cursor/rules/mirai.mdc` | Cursor project profile |
+| Claude Code/CLI | `plugins/mirai-claude` + `.claude-plugin/marketplace.json` | Claude plugin marketplace entry |
 | Hermes | `plugin.yaml` + `plugins/mirai-hermes` | Hermes Git plugin profile |
 
 The Codex plugin was generated and validated using Codex's `plugin-creator`

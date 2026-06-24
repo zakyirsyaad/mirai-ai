@@ -1,6 +1,6 @@
 ---
 name: mirai
-description: Operate Mirai MCP, a CROO-licensed local X content agent. Use when the user wants to activate a Mirai license, connect X, create or start a 7-day autopost campaign, manage user-supplied content, pause or resume posting, inspect campaign status, generate reports, use the read-only Voice & Ideas service, or troubleshoot Mirai MCP/worker/database/license state from Claude Code, Codex, Cursor, Hermes, or another MCP client.
+description: Operate Mirai MCP, a CROO-licensed local X content agent. Use when the user wants to activate a Mirai license, connect X, create or start a 7-day autopost campaign, manage user-supplied content, pause or resume posting, inspect campaign status, generate reports, use the read-only Voice & Ideas service, or troubleshoot Mirai MCP/worker/database/license state from Codex, Claude Code/CLI, Hermes, or another MCP-capable client.
 ---
 
 # Mirai

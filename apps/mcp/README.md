@@ -11,7 +11,8 @@ mirai doctor
 
 ## MCP Server
 
-Use this command in Claude Code, Codex, Cursor, Hermes, or any MCP client:
+Use this command in Codex, Claude Code/CLI, Hermes, or another MCP-capable
+client:
 
 ```bash
 mirai mcp

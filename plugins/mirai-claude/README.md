@@ -1,6 +1,6 @@
 # Mirai Claude Plugin
 
-Claude Code wrapper for Mirai AI - Autonomous Content Agent.
+Claude Code/CLI wrapper for Mirai AI - Autonomous Content Agent.
 
 Users install the plugin; the plugin starts the Mirai MCP runtime through
 `npx -y @mirai-agent/mcp@latest mcp` behind the scenes. Users do not need to
@@ -13,7 +13,7 @@ claude plugin marketplace add zakyirsyaad/mirai-ai --sparse .claude-plugin plugi
 claude plugin install mirai-claude@mirai-ai
 ```
 
-Restart Claude Code after installation.
+Restart Claude Code/CLI after installation.
 
 ## Commands
 
