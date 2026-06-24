@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 99.2%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 99.2%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 98.8%;
+  --popover-foreground: 0 0% 0%;
+  --primary: 153 80% 63%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 180 20% 99%;
+  --secondary-foreground: 0 0% 3%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 32%;
+  --accent: 145 100% 99%;
+  --accent-foreground: 151 85% 34%;
+  --destructive: 339 89% 63%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 22% 96%;
+  --input: 0 0% 92%;
+  --ring: 153 80% 63%;
+  --radius: 0.5rem;
+  --shadow-color: 0 0% 0%;
+  --shadow-opacity: 0.1;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-offset-x: 0;
+  --shadow-offset-y: 1px;
+}
+
+.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 94%;
+  --card: 0 0% 4%;
+  --card-foreground: 0 0% 94%;
+  --popover: 180 2% 10%;
+  --popover-foreground: 0 0% 94%;
+  --primary: 153 80% 63%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 8%;
+  --secondary-foreground: 0 0% 94%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 70%;
+  --accent: 153 55% 12%;
+  --accent-foreground: 153 80% 63%;
+  --destructive: 339 89% 63%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 13%;
+  --input: 0 0% 16%;
+  --ring: 153 80% 63%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, hsl(var(--primary) / 0.12), transparent 30rem),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
+}
+
+::selection {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

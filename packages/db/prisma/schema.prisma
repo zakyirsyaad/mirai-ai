@@ -1,8 +1,8 @@
 // mirai-ai data model.
 //
-// Identity is wallet-as-identity: the buyer's wallet (from the CROO OrderPaid
-// event) anchors a time-boxed DashboardSession. The buyer signs into the
-// dashboard with the same wallet — no link delivery needed.
+// Identity is license-as-access, wallet-as-origin: the buyer's wallet (from the
+// CROO OrderPaid event) anchors a time-boxed buyer session. MCP clients
+// authenticate with the signed license issued for that order.
 
 generator client {
   provider = "prisma-client-js"
@@ -15,8 +15,8 @@ datasource db {
 
 // ─────────────────────────── Identity / access ───────────────────────────
 
-/// A 7-day access pass to the dashboard, keyed to the buyer's wallet address.
-model DashboardSession {
+/// A time-boxed access session keyed to the buyer's wallet address.
+model AccessSession {
   id              String        @id @default(cuid())
   buyerWallet     String // lowercased EVM address from the CROO order
   status          SessionStatus @default(ACTIVE)
@@ -41,7 +41,7 @@ enum SessionStatus {
 model XConnection {
   id                    String   @id @default(cuid())
   sessionId             String   @unique
-  session               DashboardSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session               AccessSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   xUserId               String
   xHandle               String
   encryptedAccessToken  String
@@ -79,7 +79,7 @@ model VoiceProfile {
 enum VoiceProfileSource {
   DERIVED // from the account's existing tweets
   QUESTIONNAIRE // cold-start: built from onboarding answers
-  MANUAL_OVERRIDE // user edited it in the dashboard
+  MANUAL_OVERRIDE // user edited it through MCP/client flow
 }
 
 /// User-supplied raw content pool (USER_SUPPLIED mode).
@@ -111,8 +111,9 @@ model Order {
   service       String // ServiceType from @mirai/shared
   status        OrderStatus @default(PAID)
   sessionId     String?
-  session       DashboardSession? @relation(fields: [sessionId], references: [id])
+  session       AccessSession? @relation(fields: [sessionId], references: [id])
   campaign      Campaign?
+  entitlement   Entitlement?
   deliveredAt   DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -127,13 +128,42 @@ enum OrderStatus {
   FAILED
 }
 
+/// Signed access pass delivered after CROO payment and verified by local MCP.
+model Entitlement {
+  id            String            @id @default(cuid())
+  orderId       String            @unique
+  order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  crooOrderId   String            @unique
+  buyerWallet   String
+  service       String
+  licenseKey    String            @unique
+  issuedAt      DateTime
+  expiresAt     DateTime
+  scopes        String[]
+  limits        Json
+  status        EntitlementStatus @default(ACTIVE)
+  activatedAt   DateTime?
+  lastCheckedAt DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([buyerWallet])
+  @@index([status, expiresAt])
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
 /// The running content campaign for an order.
 model Campaign {
   id              String         @id @default(cuid())
   orderId         String         @unique
   order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   sessionId       String
-  session         DashboardSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session         AccessSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   contentMode     ContentMode    @default(AUTONOMOUS)
   enabled         Boolean        @default(true)
   status          CampaignStatus @default(WAITING_FOR_X)

@@ -5,7 +5,7 @@ import { enqueueAcquire } from "./stages/campaign.js";
 /**
  * Time-driven scheduler. Polls on an interval and:
  *  - fans each due PLANNED slot of an ACTIVE, enabled campaign into ACQUIRE;
- *  - triggers DELIVER for campaigns whose access window has closed.
+ *  - finalizes campaigns whose access window has closed.
  *
  * Enqueues use deterministic jobIds, so the poll is safe to run repeatedly —
  * an already-enqueued or already-advanced slot won't be duplicated.
@@ -36,7 +36,11 @@ async function tick(): Promise<void> {
     where: {
       stage: PostStage.PLANNED,
       scheduledFor: { lte: nowDate },
-      campaign: { status: CampaignStatus.ACTIVE, enabled: true },
+      campaign: {
+        status: CampaignStatus.ACTIVE,
+        enabled: true,
+        accessExpiresAt: { gt: nowDate },
+      },
     },
     select: { id: true, campaignId: true },
     take: 100,
@@ -45,7 +49,7 @@ async function tick(): Promise<void> {
     await enqueueAcquire(p.campaignId, p.id);
   }
 
-  // 2) Campaigns past their window → DELIVER (once).
+  // 2) Campaigns past their window → local final report/finalize (once).
   const expired = await prisma.campaign.findMany({
     where: {
       status: CampaignStatus.ACTIVE,

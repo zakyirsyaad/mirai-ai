@@ -3,6 +3,7 @@ import { describeClients } from "./clients.js";
 import { startWorkers } from "./workers.js";
 import { startScheduler, stopScheduler } from "./scheduler.js";
 import { startCroo, crooClient } from "./croo.js";
+import { startEntitlementServer } from "./entitlement-server.js";
 
 /**
  * Agent entry point.
@@ -22,6 +23,7 @@ async function main(): Promise<void> {
 
   const workers = startWorkers();
   startScheduler();
+  const entitlementServer = startEntitlementServer();
 
   if (env.CROO_SDK_KEY) {
     try {
@@ -39,6 +41,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`[agent] ${signal} received — shutting down.`);
     stopScheduler();
+    entitlementServer.close();
     await Promise.allSettled(workers.map((w) => w.close()));
     if (env.CROO_SDK_KEY) {
       try {

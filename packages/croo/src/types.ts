@@ -46,7 +46,7 @@ export interface OrderPaidEvent {
   buyerWallet: string;
   /** Parsed from the negotiation's `requirements` JSON string. */
   requirements: unknown;
-  /** SLA deadline (ISO string) from `order.slaDeadline`; drives the access window. */
+  /** SLA deadline (ISO string) from `order.slaDeadline`; provider delivery deadline only. */
   slaDeadline: string;
 }
 

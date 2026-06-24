@@ -1,0 +1,47 @@
+{
+  "name": "@mirai/mcp",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Mirai MCP local agent runtime for CROO-licensed autonomous X campaigns.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "mirai": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mirai/agent": "workspace:*",
+    "@mirai/content": "workspace:*",
+    "@mirai/db": "workspace:*",
+    "@mirai/shared": "workspace:*",
+    "@mirai/x": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

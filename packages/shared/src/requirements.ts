@@ -3,9 +3,9 @@ import { z } from "zod";
 /**
  * CROO order requirement & deliverable schemas.
  *
- * With the access-pass product model, most configuration happens inside our
- * dashboard (after payment), so the on-chain order requirements are minimal —
- * they mainly identify which service was purchased.
+ * With the access-pass product model, most configuration happens through MCP
+ * tools after payment, so the on-chain order requirements are minimal — they
+ * mainly identify which service was purchased.
  */
 
 /** The two services we register on the CROO Agent Store. */
@@ -17,7 +17,7 @@ export const ServiceType = {
 } as const;
 export type ServiceType = (typeof ServiceType)[keyof typeof ServiceType];
 
-/** Content sourcing mode for a campaign (changeable in-dashboard). */
+/** Content sourcing mode for a campaign. */
 export const ContentMode = {
   Autonomous: "AUTONOMOUS",
   UserSupplied: "USER_SUPPLIED",
@@ -27,10 +27,23 @@ export type ContentMode = (typeof ContentMode)[keyof typeof ContentMode];
 /** Minimal requirements attached to a CROO order/negotiation. */
 export const OrderRequirementsSchema = z.object({
   service: z.nativeEnum(ServiceType),
-  /** Optional buyer-supplied note shown in the dashboard. */
+  /** Optional buyer-supplied note for the MCP/client flow. */
   note: z.string().max(2000).optional(),
 });
 export type OrderRequirements = z.infer<typeof OrderRequirementsSchema>;
+
+/** CROO settlement payload for access-pass orders delivered immediately. */
+export const LicenseDeliverySchema = z.object({
+  type: z.literal("mirai-license"),
+  service: z.nativeEnum(ServiceType),
+  orderId: z.string().min(1),
+  licenseKey: z.string().startsWith("mirai_v1."),
+  expiresAt: z.string().datetime(),
+  installCommand: z.string().min(1),
+  docsUrl: z.string().url(),
+  nextSteps: z.string().min(1),
+});
+export type LicenseDelivery = z.infer<typeof LicenseDeliverySchema>;
 
 /** Per-post entry in the Service #1 deliverable report. */
 export const DeliveredPostSchema = z.object({
@@ -51,7 +64,7 @@ export const DeliveredPostSchema = z.object({
 });
 export type DeliveredPost = z.infer<typeof DeliveredPostSchema>;
 
-/** Service #1 deliverable — the proof-of-work report sent to deliverOrder(). */
+/** Service #1 final report — exposed through MCP after the campaign window. */
 export const ContentAgentDeliverableSchema = z.object({
   service: z.literal(ServiceType.ContentAgent7d),
   campaignId: z.string(),

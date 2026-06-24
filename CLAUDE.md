@@ -15,8 +15,8 @@ the repo is **public / open-source (MIT)**.
 
 ```
 apps/
-  agent/   CROO Provider worker + staged BullMQ pipeline (the core service)
-  web/     Next.js dashboard (wallet sign-in, X OAuth, voice, content pool, live SSE)
+  agent/   CROO Provider worker + hosted MCP API + staged BullMQ pipeline
+  mcp/     Single npm binary (`mirai`) + MCP stdio server for agent clients
 packages/
   shared/  env loader, token vault (AES-256-GCM), Zod requirement/deliverable schemas, event types
   db/      Prisma schema + client singleton (Postgres)
@@ -25,8 +25,8 @@ packages/
   content/ Claude engine: voice extraction, X-signal grounding, write, rewrite, review, ideas (AnthropicLlm + MockLlm)
 ```
 
-Dependency direction: `shared` ← everything; `agent` & `web` depend on the
-packages, never the reverse. Build bottom-up (turbo handles ordering).
+Dependency direction: `shared` ← everything; apps depend on packages, never the
+reverse. Build bottom-up (turbo handles ordering).
 
 ## The pipeline (apps/agent)
 
@@ -38,7 +38,7 @@ INTAKE → BRIEF → PLAN → [ACQUIRE → COMPOSE → REVIEW → POST → RECOR
 ```
 
 - **INTAKE / OrderPaid** (`src/croo.ts`): auto-accept negotiations; on payment,
-  provision `DashboardSession` + `Order` + `Campaign`, enqueue campaign `start`.
+  provision `AccessSession` + `Order` + `Campaign`, enqueue campaign `start`.
 - **BRIEF+PLAN** (`src/stages/campaign.ts` → `start`): lay out scheduled post
   slots once X is connected + a voice profile exists; else park `WAITING_FOR_X`.
 - **ACQUIRE** (`stages/acquire.ts`): AUTONOMOUS → owned-read signals (timeline +
@@ -59,9 +59,8 @@ triggers DELIVER for expired campaigns. All enqueues use deterministic jobIds.
 
 `NEGOTIATION → LOCK → DELIVER → CLEAR`. Events: `NegotiationCreated`,
 `OrderPaid`, `OrderCompleted`. The agent is the **single owner of the CROO
-WebSocket — 1 WS per API key.** The dashboard must never open its own; it reads
-a derived progress stream the agent publishes to Redis pub/sub, proxied to the
-browser via SSE (`apps/web/.../api/events`).
+WebSocket — 1 WS per API key.** MCP clients never open their own CROO
+connection; they call the hosted API, and the agent owns marketplace settlement.
 
 Raw SDK field access is isolated to `packages/croo/src/client.ts` (the
 normalizers). If the SDK's payload field names differ from what we guessed,
@@ -69,10 +68,9 @@ normalizers). If the SDK's payload field names differ from what we guessed,
 
 ## Identity model
 
-**Wallet-as-identity.** No dashboard link is delivered to the buyer. The agent
-keys each `DashboardSession` to the buyer's wallet (from `OrderPaid`). The buyer
-signs into the dashboard with the **same wallet** (SIWE); we match it to their
-paid order. See `apps/web/src/lib/session.ts`.
+**License-as-access, wallet-as-origin.** On `OrderPaid`, the agent keys each
+session to the buyer wallet and issues a signed license. MCP clients use that
+license to access hosted tools; no dashboard link or SIWE flow is required.
 
 ## Commands
 
@@ -82,8 +80,7 @@ cp .env.example .env          # then fill in (see Secrets below)
 pnpm infra:up                 # Postgres + Redis via docker compose
 pnpm db:migrate               # prisma migrate dev
 pnpm db:generate              # regenerate client after schema changes
-pnpm agent:dev                # run the agent (CROO listener + workers + scheduler)
-pnpm web:dev                  # dashboard at http://localhost:3000
+pnpm agent:dev                # run hosted API + CROO listener + workers + scheduler
 pnpm typecheck                # turbo typecheck across the workspace
 pnpm build                    # turbo build
 ```

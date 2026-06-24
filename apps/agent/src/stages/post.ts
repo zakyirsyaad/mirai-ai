@@ -4,6 +4,7 @@ import { xClient } from "../clients.js";
 import { getXAccess } from "../tokens.js";
 import { publishEvent, now } from "../publisher.js";
 import { recordQueue, postJobId, type PostJob } from "../queues.js";
+import { checkCampaignEntitlement } from "../entitlements.js";
 
 /**
  * POST — publish the reviewed draft to X. Idempotent: if a tweetId already
@@ -24,6 +25,8 @@ export async function processPost(job: PostJob): Promise<void> {
   const post = await prisma.scheduledPost.findUniqueOrThrow({
     where: { id: scheduledPostId },
   });
+
+  await checkCampaignEntitlement(campaignId);
 
   if (post.tweetId) {
     // Already posted — go straight to RECORD.

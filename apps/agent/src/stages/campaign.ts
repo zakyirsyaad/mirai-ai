@@ -1,12 +1,10 @@
-import { prisma, CampaignStatus, PostStage, OrderStatus } from "@mirai/db";
+import { prisma, CampaignStatus, PostStage } from "@mirai/db";
 import {
   ServiceType,
   Stage,
   type ContentAgentDeliverable,
 } from "@mirai/shared";
-import { DeliverableType } from "@mirai/croo";
 import { publishEvent, now } from "../publisher.js";
-import { crooClient } from "../croo.js";
 import { acquireQueue, postJobId, type CampaignJob } from "../queues.js";
 
 /**
@@ -78,8 +76,9 @@ async function startCampaign(campaignId: string): Promise<void> {
 }
 
 /**
- * DELIVER: assemble the proof-of-work report and settle the order via CROO.
- * Called when the access window closes.
+ * DELIVER: assemble the proof-of-work report and close the local campaign.
+ * CROO order settlement happens immediately after license delivery; the final
+ * campaign report remains available through MCP.
  */
 async function deliverCampaign(campaignId: string): Promise<void> {
   const campaign = await prisma.campaign.findUniqueOrThrow({
@@ -120,21 +119,14 @@ async function deliverCampaign(campaignId: string): Promise<void> {
     })),
   };
 
-  await crooClient().deliverOrder(campaign.order.crooOrderId, {
-    type: DeliverableType.Schema,
-    schema: deliverable,
-  });
+  console.log(
+    `[campaign] final report generated for ${campaignId}: ${deliverable.summary.posted}/${deliverable.summary.planned} posted.`,
+  );
 
-  await prisma.$transaction([
-    prisma.order.update({
-      where: { id: campaign.orderId },
-      data: { status: OrderStatus.DELIVERED, deliveredAt: new Date() },
-    }),
-    prisma.campaign.update({
-      where: { id: campaignId },
-      data: { status: CampaignStatus.COMPLETED, enabled: false },
-    }),
-  ]);
+  await prisma.campaign.update({
+    where: { id: campaignId },
+    data: { status: CampaignStatus.COMPLETED, enabled: false },
+  });
 
   await publishEvent({
     type: "progress",

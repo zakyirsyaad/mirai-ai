@@ -10,7 +10,7 @@ if (!VAULT_KEY) throw new Error("TOKEN_VAULT_KEY required");
 const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 const past = new Date(Date.now() - 60 * 1000);
 
-const session = await prisma.dashboardSession.create({
+const session = await prisma.accessSession.create({
   data: { buyerWallet: "0xtestwallet000000000000000000000000000001", accessExpiresAt: future },
 });
 

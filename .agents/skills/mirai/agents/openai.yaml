@@ -1,0 +1,12 @@
+interface:
+  display_name: "Mirai"
+  short_description: "Operate Mirai MCP campaigns"
+  default_prompt: "Use $mirai to set up and manage my Mirai MCP campaign."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "mirai"
+      description: "Mirai local MCP server exposing campaign, license, X connection, posting, and report tools."
+      transport: "stdio"
+policy:
+  allow_implicit_invocation: true

@@ -2,9 +2,8 @@ import { loadEnv, campaignChannel, type MiraiEvent } from "@mirai/shared";
 import { createRedis } from "./redis.js";
 
 /**
- * Publishes pipeline progress to Redis pub/sub. The web server subscribes and
- * proxies to the browser via SSE — the agent stays the single owner of both the
- * CROO WebSocket and the canonical event stream.
+ * Publishes pipeline progress to Redis pub/sub. The agent stays the single owner
+ * of both the CROO WebSocket and the canonical event stream.
  */
 const env = loadEnv();
 const pub = createRedis();

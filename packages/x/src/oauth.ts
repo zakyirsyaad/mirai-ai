@@ -7,7 +7,7 @@ import type { XTokens } from "./types.js";
  * X requires PKCE for public clients. We generate a code verifier/challenge,
  * send the user to the authorize URL, then exchange the returned code for
  * tokens. `state` is used as CSRF protection and to correlate the callback
- * with the originating dashboard session.
+ * with the originating buyer/session record.
  */
 
 const AUTHORIZE_URL = "https://twitter.com/i/oauth2/authorize";

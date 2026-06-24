@@ -1,10 +1,9 @@
 /**
  * Internal event bus types.
  *
- * The agent worker is the SOLE holder of the CROO WebSocket (1 WS per API key),
- * so the dashboard must NOT open its own CROO connection. Instead the agent
- * publishes pipeline progress to a Redis pub/sub channel; the web server
- * subscribes and proxies these to the browser over SSE.
+ * The agent worker is the SOLE holder of the CROO WebSocket (1 WS per API key).
+ * Hosted MCP tools and workers publish derived progress events for reporting
+ * and operational inspection without opening extra marketplace connections.
  */
 
 /** Pipeline stage names — one per BullMQ queue. */
@@ -45,7 +44,7 @@ export interface CampaignEvent {
 
 export type MiraiEvent = ProgressEvent | CampaignEvent;
 
-/** Channel name helper — scopes events per campaign for the SSE proxy. */
+/** Channel name helper — scopes events per campaign. */
 export function campaignChannel(base: string, campaignId: string): string {
   return `${base}:campaign:${campaignId}`;
 }

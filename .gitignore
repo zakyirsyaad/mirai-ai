@@ -1,5 +1,6 @@
 # Secrets — NEVER commit. CROO API key & X/Anthropic tokens live here.
 .env
+.env.production
 .env.local
 .env.*.local
 *.pem

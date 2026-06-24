@@ -1,6 +1,12 @@
-import { loadEnv, OrderRequirementsSchema, ServiceType } from "@mirai/shared";
+import {
+  LicenseDeliverySchema,
+  ServiceType,
+  calculateLicenseExpiresAt,
+  loadEnv,
+} from "@mirai/shared";
 import {
   CrooClient,
+  DeliverableType,
   type NegotiationCreatedEvent,
   type OrderCompletedEvent,
   type OrderPaidEvent,
@@ -13,20 +19,26 @@ import {
   SessionStatus,
 } from "@mirai/db";
 import { campaignQueue } from "./queues.js";
+import {
+  createEntitlementForOrder,
+  summarizeLicenseForLogs,
+} from "./entitlements.js";
+import { resolveCrooService } from "./croo-service.js";
 
 /**
  * CROO integration for the agent — the SINGLE owner of the Provider WebSocket
  * (1 WS per API key). Translates marketplace lifecycle events into our domain:
  *
  *   NegotiationCreated → auto-accept (we always take the job)
- *   OrderPaid          → provision DashboardSession + Order + Campaign,
- *                        then enqueue the campaign "start" job
+ *   OrderPaid          → provision AccessSession + Order + Campaign, deliver
+ *                        the signed license to CROO immediately, then enqueue
+ *                        the campaign "start" job
  *   OrderCompleted     → mark the order settled
  */
 
 const env = loadEnv();
-/** Fallback access window if the order carries no SLA deadline (defensive). */
-const FALLBACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const MIRAI_PACKAGE_NAME = "@mirai/mcp";
+const MIRAI_DOCS_URL = "https://github.com/0xAlvary/mirai-ai#mirai-ai";
 
 let client: CrooClient | undefined;
 
@@ -50,12 +62,15 @@ export async function startCroo(): Promise<void> {
 async function handleNegotiationCreated(
   e: NegotiationCreatedEvent,
 ): Promise<void> {
-  // We accept every well-formed negotiation for our listed services.
-  const parsed = OrderRequirementsSchema.safeParse(e.requirements);
-  if (!parsed.success) {
+  const service = resolveCrooService({
+    serviceId: e.serviceId,
+    requirements: e.requirements,
+    env,
+  });
+  if (!service) {
     await crooClient().rejectNegotiation(
       e.negotiationId,
-      "requirements do not match a listed mirai-ai service",
+      "service does not match a listed mirai-ai service",
     );
     return;
   }
@@ -63,26 +78,38 @@ async function handleNegotiationCreated(
 }
 
 async function handleOrderPaid(e: OrderPaidEvent): Promise<void> {
-  const parsed = OrderRequirementsSchema.safeParse(e.requirements);
-  const service = parsed.success
-    ? parsed.data.service
-    : ServiceType.ContentAgent7d;
+  const service = resolveCrooService({
+    serviceId: e.serviceId,
+    requirements: e.requirements,
+    env,
+  });
+  if (!service) {
+    throw new Error(`Unknown CROO serviceId: ${e.serviceId}`);
+  }
   const buyerWallet = e.buyerWallet.toLowerCase();
-  // The order's on-chain SLA deadline is the source of truth for the access
-  // window; fall back to a 7-day window only if the event omitted it.
-  const slaTs = e.slaDeadline ? Date.parse(e.slaDeadline) : NaN;
-  const accessExpiresAt = Number.isNaN(slaTs)
-    ? new Date(Date.now() + FALLBACK_WINDOW_MS)
-    : new Date(slaTs);
 
   // Idempotent on crooOrderId — a redelivered event must not double-provision.
   const existing = await prisma.order.findUnique({
     where: { crooOrderId: e.orderId },
+    include: { entitlement: true },
   });
-  if (existing) return;
+  if (existing) {
+    if (existing.status === OrderStatus.PAID && existing.entitlement) {
+      await deliverLicenseToCroo({
+        crooOrderId: existing.crooOrderId,
+        orderDbId: existing.id,
+        service: existing.service as ServiceType,
+        licenseKey: existing.entitlement.licenseKey,
+        expiresAt: existing.entitlement.expiresAt,
+      });
+    }
+    return;
+  }
 
-  await prisma.$transaction(async (tx) => {
-    const session = await tx.dashboardSession.create({
+  const issuedAt = new Date();
+  const accessExpiresAt = calculateLicenseExpiresAt(service, issuedAt);
+  const provisioned = await prisma.$transaction(async (tx) => {
+    const session = await tx.accessSession.create({
       data: {
         buyerWallet,
         status: SessionStatus.ACTIVE,
@@ -99,7 +126,21 @@ async function handleOrderPaid(e: OrderPaidEvent): Promise<void> {
         sessionId: session.id,
       },
     });
-    // Service #1 spins up a campaign; Service #2 (read-only) is handled in-app.
+    const entitlement = await createEntitlementForOrder({
+      tx,
+      orderId: order.id,
+      crooOrderId: e.orderId,
+      buyerWallet,
+      service,
+      issuedAt,
+    });
+    if (entitlement) {
+      console.log(
+        `[entitlement] issued license for ${summarizeLicenseForLogs(entitlement.licenseKey)}`,
+      );
+    }
+
+    // Service #1 spins up a campaign; Service #2 (read-only) is handled by MCP.
     if (service === ServiceType.ContentAgent7d) {
       const campaign = await tx.campaign.create({
         data: {
@@ -110,14 +151,30 @@ async function handleOrderPaid(e: OrderPaidEvent): Promise<void> {
           status: CampaignStatus.WAITING_FOR_X,
           accessExpiresAt,
         },
-      });
+        });
       // Enqueue start (will park in WAITING_FOR_X until X is connected).
       await campaignQueue.add("start", {
         action: "start",
         campaignId: campaign.id,
       });
     }
+
+    return {
+      orderDbId: order.id,
+      licenseKey: entitlement?.licenseKey ?? null,
+      expiresAt: entitlement?.expiresAt ?? accessExpiresAt,
+    };
   });
+
+  if (provisioned.licenseKey) {
+    await deliverLicenseToCroo({
+      crooOrderId: e.orderId,
+      orderDbId: provisioned.orderDbId,
+      service,
+      licenseKey: provisioned.licenseKey,
+      expiresAt: provisioned.expiresAt,
+    });
+  }
 }
 
 async function handleOrderCompleted(e: OrderCompletedEvent): Promise<void> {
@@ -125,4 +182,69 @@ async function handleOrderCompleted(e: OrderCompletedEvent): Promise<void> {
     where: { crooOrderId: e.orderId },
     data: { status: OrderStatus.COMPLETED },
   });
+}
+
+async function deliverLicenseToCroo(args: {
+  crooOrderId: string;
+  orderDbId: string;
+  service: ServiceType;
+  licenseKey: string;
+  expiresAt: Date;
+}): Promise<void> {
+  if (!env.CROO_SDK_KEY) {
+    console.warn(
+      `[croo] CROO_SDK_KEY not set; license for ${args.crooOrderId} was generated but not delivered to CROO.`,
+    );
+    return;
+  }
+
+  const deliverable = LicenseDeliverySchema.parse({
+    type: "mirai-license",
+    service: args.service,
+    orderId: args.crooOrderId,
+    licenseKey: args.licenseKey,
+    expiresAt: args.expiresAt.toISOString(),
+    installCommand: `npm install -g ${MIRAI_PACKAGE_NAME}`,
+    docsUrl: MIRAI_DOCS_URL,
+    nextSteps:
+      "Install Mirai MCP, add it to your MCP client, activate this license with mirai_activate_license, then connect X through hosted OAuth.",
+  });
+
+  await crooClient().deliverOrder(args.crooOrderId, {
+    type: DeliverableType.Text,
+    text: formatLicenseDeliveryText(deliverable),
+  });
+  await prisma.order.update({
+    where: { id: args.orderDbId },
+    data: { status: OrderStatus.DELIVERED, deliveredAt: new Date() },
+  });
+}
+
+function formatLicenseDeliveryText(deliverable: {
+  service: ServiceType;
+  orderId: string;
+  licenseKey: string;
+  expiresAt: string;
+  installCommand: string;
+  docsUrl: string;
+  nextSteps: string;
+}): string {
+  return [
+    "Mirai MCP license is ready.",
+    "",
+    `Service: ${deliverable.service}`,
+    `Order ID: ${deliverable.orderId}`,
+    `Expires at: ${deliverable.expiresAt}`,
+    "",
+    "License key:",
+    deliverable.licenseKey,
+    "",
+    "Install:",
+    deliverable.installCommand,
+    "",
+    "Next steps:",
+    deliverable.nextSteps,
+    "",
+    `Docs: ${deliverable.docsUrl}`,
+  ].join("\n");
 }

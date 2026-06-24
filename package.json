@@ -17,11 +17,14 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "db:generate": "pnpm --filter @mirai/db generate",
     "db:migrate": "pnpm --filter @mirai/db migrate",
+    "db:migrate:deploy": "pnpm --filter @mirai/db migrate:deploy",
     "db:studio": "pnpm --filter @mirai/db studio",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "agent:dev": "pnpm --filter @mirai/agent dev",
-    "web:dev": "pnpm --filter @mirai/web dev"
+    "site:dev": "pnpm --filter @mirai/site dev",
+    "site:build": "pnpm --filter @mirai/site build",
+    "site:start": "pnpm --filter @mirai/site start"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

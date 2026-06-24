@@ -13,8 +13,7 @@ import {
  * Thin wrapper over the CROO Node SDK (@croo-network/sdk@0.2.1).
  *
  * Responsibilities:
- *  - own the single WebSocket connection (1 WS per API key — the dashboard must
- *    NOT open its own);
+ *  - own the single WebSocket connection (1 WS per API key);
  *  - subscribe to the SDK's EventStream and normalize raw events;
  *  - **enrich** events: the WS carries IDs only, so we fetch the full
  *    Negotiation/Order over HTTP to recover requirements + buyer wallet + SLA;
@@ -132,7 +131,10 @@ export class CrooClient {
   async connect(): Promise<void> {
     const raw = await this.createRaw();
     this.raw = raw;
-    const stream = await raw.connectWebSocket();
+    const stream = await withRedactedCrooKey(
+      this.opts.env.CROO_SDK_KEY,
+      () => raw.connectWebSocket(),
+    );
     this.stream = stream;
 
     stream.on(WireEvent.NegotiationCreated, (e) => {
@@ -235,6 +237,59 @@ export class CrooClient {
     }
     return this.raw;
   }
+}
+
+async function withRedactedCrooKey<T>(
+  key: string | undefined,
+  action: () => Promise<T>,
+): Promise<T> {
+  if (!key) return action();
+
+  const original = {
+    log: console.log,
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+    debug: console.debug,
+  };
+  const redactArgs = (args: unknown[]) => args.map((arg) => redactValue(arg, key));
+  const wrap =
+    (method: (...args: unknown[]) => void) =>
+    (...args: unknown[]) =>
+      method(...redactArgs(args));
+
+  console.log = wrap(original.log);
+  console.info = wrap(original.info);
+  console.warn = wrap(original.warn);
+  console.error = wrap(original.error);
+  console.debug = wrap(original.debug);
+
+  try {
+    return await action();
+  } finally {
+    console.log = original.log;
+    console.info = original.info;
+    console.warn = original.warn;
+    console.error = original.error;
+    console.debug = original.debug;
+  }
+}
+
+function redactValue(value: unknown, key: string): unknown {
+  if (typeof value === "string") return value.replaceAll(key, maskKey(key));
+  if (Array.isArray(value)) return value.map((item) => redactValue(item, key));
+  if (!value || typeof value !== "object") return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([entryKey, entryValue]) => [
+      entryKey,
+      redactValue(entryValue, key),
+    ]),
+  );
+}
+
+function maskKey(key: string): string {
+  return key.length <= 8 ? "***" : `${key.slice(0, 7)}...${key.slice(-4)}`;
 }
 
 // ─────────── helpers ───────────
