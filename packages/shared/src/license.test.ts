@@ -109,9 +109,9 @@ test("validates CROO license delivery payloads", () => {
     orderId: "croo-order-4",
     licenseKey: "mirai_v1.payload.signature",
     expiresAt: "2026-07-01T10:00:00.000Z",
-    installCommand: "npm install -g @mirai/mcp",
+    installCommand: "npm install -g @mirai-agent/mcp",
     docsUrl: "https://github.com/0xAlvary/mirai-ai#mirai-ai",
-    nextSteps: "Activate the license from your MCP client.",
+    nextSteps: "Activate the license from the Mirai plugin/profile.",
   });
 
   assert.equal(parsed.service, ServiceType.ContentAgent7d);

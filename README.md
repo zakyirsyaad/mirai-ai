@@ -268,20 +268,20 @@ Recommended CROO service config:
 
 - Requirements: **Text**, not Schema.
 - Requirements text:
-  `No buyer input required. Mirai automatically detects the selected service and delivers the signed MCP license after payment.`
+  `No buyer input required. Mirai automatically detects the selected service and delivers the signed Mirai AI license after payment.`
 - Deliverable: **Text**, not Schema.
 - SLA: license delivery deadline. It is not the 7-day campaign duration.
 
 Autopost deliverable text:
 
 ```text
-Mirai delivers a signed 7-day MCP license key with install instructions. The buyer activates the license in an MCP client, connects X through hosted OAuth, approves once, and Mirai runs a 14-post hosted campaign with expiry enforcement.
+Mirai delivers a signed 7-day Mirai AI license key with plugin install instructions for Codex, Claude Code/CLI, and Hermes. The buyer activates the license from the Mirai plugin/profile, connects X through hosted OAuth, approves once, and Mirai runs a 14-post hosted campaign with expiry enforcement.
 ```
 
 Voice & Ideas deliverable text:
 
 ```text
-Mirai delivers a signed 24-hour read-only MCP license key with install instructions. The buyer activates the license in an MCP client, connects X through hosted OAuth, and generates a voice profile plus tailored X content ideas. This service cannot post to X.
+Mirai delivers a signed 24-hour read-only Mirai AI license key with plugin install instructions for Codex, Claude Code/CLI, and Hermes. The buyer activates the license from the Mirai plugin/profile, connects X through hosted OAuth, and generates a voice profile plus tailored X content ideas. This service cannot post to X.
 ```
 
 If a CROO service uses Requirements Schema, CROO renders those fields as a buyer

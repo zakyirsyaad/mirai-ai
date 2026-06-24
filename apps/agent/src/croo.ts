@@ -207,7 +207,7 @@ async function deliverLicenseToCroo(args: {
     installCommand: `npm install -g ${MIRAI_PACKAGE_NAME}`,
     docsUrl: MIRAI_DOCS_URL,
     nextSteps:
-      "Install Mirai MCP, add it to your MCP client, activate this license with mirai_activate_license, then connect X through hosted OAuth.",
+      "Install the Mirai plugin/profile for Codex, Claude Code/CLI, or Hermes, activate this license with mirai_activate_license, then connect X through hosted OAuth.",
   });
 
   await crooClient().deliverOrder(args.crooOrderId, {
@@ -230,7 +230,7 @@ function formatLicenseDeliveryText(deliverable: {
   nextSteps: string;
 }): string {
   return [
-    "Mirai MCP license is ready.",
+    "Mirai AI license is ready.",
     "",
     `Service: ${deliverable.service}`,
     `Order ID: ${deliverable.orderId}`,
@@ -239,7 +239,7 @@ function formatLicenseDeliveryText(deliverable: {
     "License key:",
     deliverable.licenseKey,
     "",
-    "Install:",
+    "Install package:",
     deliverable.installCommand,
     "",
     "Next steps:",
