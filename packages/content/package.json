@@ -15,6 +15,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm --filter @mirai/shared build && pnpm build && node --test 'dist/**/*.test.js'",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {

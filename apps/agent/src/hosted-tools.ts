@@ -2,6 +2,7 @@ import {
   CampaignStatus,
   ContentItemStatus,
   ContentMode,
+  type ContentPolicy as DbContentPolicy,
   EntitlementStatus,
   PostStage,
   VoiceProfileSource,
@@ -9,6 +10,7 @@ import {
 } from "@mirai/db";
 import {
   ContentAgentDeliverableSchema,
+  ContentPolicySchema,
   LicenseScope,
   ServiceType,
   VoiceIdeasDeliverableSchema,
@@ -18,6 +20,7 @@ import {
   encryptToken,
   loadEnv,
   type ContentAgentDeliverable,
+  type ContentPolicyPayload,
   type LicensePayload,
   type VoiceProfilePayload,
 } from "@mirai/shared";
@@ -157,6 +160,7 @@ export async function hostedCreateCampaign(
     audience?: string;
     goal?: string;
     toneHint?: string;
+    contentPolicy?: ContentPolicyPayload;
   },
 ): Promise<unknown> {
   const access = await ensureHostedAccess(
@@ -189,7 +193,24 @@ export async function hostedCreateCampaign(
       goal: args.goal,
     });
   }
+  if (args.contentPolicy) {
+    await upsertContentPolicy(campaign.id, args.contentPolicy);
+  }
   return hostedGetCampaign(licenseKey);
+}
+
+export async function hostedSetContentPolicy(
+  licenseKey: string,
+  policy: ContentPolicyPayload,
+): Promise<unknown> {
+  const access = await ensureHostedAccess(licenseKey, LicenseScope.CampaignWrite);
+  if (!access.campaignId) throw new Error("No campaign exists for this license.");
+  const saved = await upsertContentPolicy(access.campaignId, policy);
+  return {
+    ok: true,
+    campaignId: access.campaignId,
+    contentPolicy: serializeContentPolicy(saved),
+  };
 }
 
 export async function hostedSetVoiceProfile(
@@ -285,6 +306,7 @@ export async function hostedGetCampaign(licenseKey: string): Promise<unknown> {
     where: { id: access.campaignId },
     include: {
       voiceProfile: true,
+      contentPolicy: true,
       session: { include: { xConnection: true } },
       scheduledPosts: { orderBy: { slotIndex: "asc" } },
       _count: { select: { contentItems: true } },
@@ -302,6 +324,9 @@ export async function hostedGetCampaign(licenseKey: string): Promise<unknown> {
           expiresAt: campaign.accessExpiresAt.toISOString(),
           xHandle: campaign.session.xConnection?.xHandle ?? null,
           hasVoiceProfile: !!campaign.voiceProfile,
+          contentPolicy: campaign.contentPolicy
+            ? serializeContentPolicy(campaign.contentPolicy)
+            : null,
           contentItems: campaign._count.contentItems,
           posts: summarizePosts(campaign.scheduledPosts),
         }
@@ -502,6 +527,47 @@ async function upsertVoiceProfile(
       audience: meta.audience,
       goal: meta.goal,
     },
+  });
+}
+
+async function upsertContentPolicy(
+  campaignId: string,
+  policy: ContentPolicyPayload,
+): Promise<DbContentPolicy> {
+  const parsed = ContentPolicySchema.parse(policy);
+  return prisma.contentPolicy.upsert({
+    where: { campaignId },
+    create: {
+      campaignId,
+      allowedTopics: parsed.allowedTopics,
+      blockedTopics: parsed.blockedTopics,
+      blockedPhrases: parsed.blockedPhrases,
+      language: parsed.language,
+      toneRules: parsed.toneRules,
+      formatRules: parsed.formatRules,
+      requireApprovalFor: parsed.requireApprovalFor,
+    },
+    update: {
+      allowedTopics: parsed.allowedTopics,
+      blockedTopics: parsed.blockedTopics,
+      blockedPhrases: parsed.blockedPhrases,
+      language: parsed.language,
+      toneRules: parsed.toneRules,
+      formatRules: parsed.formatRules,
+      requireApprovalFor: parsed.requireApprovalFor,
+    },
+  });
+}
+
+function serializeContentPolicy(policy: DbContentPolicy): ContentPolicyPayload {
+  return ContentPolicySchema.parse({
+    allowedTopics: policy.allowedTopics,
+    blockedTopics: policy.blockedTopics,
+    blockedPhrases: policy.blockedPhrases,
+    language: policy.language,
+    toneRules: policy.toneRules,
+    formatRules: policy.formatRules,
+    requireApprovalFor: policy.requireApprovalFor,
   });
 }
 

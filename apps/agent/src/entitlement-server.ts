@@ -12,6 +12,7 @@ import {
   hostedHealth,
   hostedPauseAutopost,
   hostedResumeAutopost,
+  hostedSetContentPolicy,
   hostedSetVoiceProfile,
   hostedStartAutopost,
   hostedXCallback,
@@ -115,6 +116,10 @@ async function routeHostedMcp(
   }
   if (req.method === "POST" && url.pathname === "/mcp/voice") {
     writeJson(res, 200, await hostedSetVoiceProfile(licenseKey, (await readJson(req)) as never));
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/mcp/policy") {
+    writeJson(res, 200, await hostedSetContentPolicy(licenseKey, (await readJson(req)) as never));
     return;
   }
   if (req.method === "POST" && url.pathname === "/mcp/content") {

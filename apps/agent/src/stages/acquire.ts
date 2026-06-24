@@ -1,5 +1,5 @@
 import { prisma, PostStage, ContentMode, ContentItemStatus } from "@mirai/db";
-import { Stage } from "@mirai/shared";
+import { ContentPolicySchema, Stage } from "@mirai/shared";
 import {
   groundFromX,
   groundFromNicheAndTrends,
@@ -31,7 +31,7 @@ export async function processAcquire(job: PostJob): Promise<void> {
 
   const campaign = await prisma.campaign.findUniqueOrThrow({
     where: { id: campaignId },
-    include: { voiceProfile: true },
+    include: { voiceProfile: true, contentPolicy: true },
   });
 
   let rawMaterial: string;
@@ -64,9 +64,12 @@ export async function processAcquire(job: PostJob): Promise<void> {
     });
     rawMaterial = JSON.stringify({ kind: "user", rawText: item.rawText });
   } else {
+    const policy = campaign.contentPolicy
+      ? ContentPolicySchema.parse(campaign.contentPolicy)
+      : null;
     const signals = await acquireAutonomousSignals(
       campaignId,
-      campaign.voiceProfile?.topics ?? [],
+      [...(campaign.voiceProfile?.topics ?? []), ...(policy?.allowedTopics ?? [])],
       campaign.voiceProfile?.niche ?? null,
     );
     rawMaterial = JSON.stringify({ kind: "autonomous", signals });

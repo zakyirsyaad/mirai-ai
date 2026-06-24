@@ -65,6 +65,10 @@ export async function hostedSetVoiceProfile(args: unknown): Promise<unknown> {
   return request("/mcp/voice", { method: "POST", body: args });
 }
 
+export async function hostedSetContentPolicy(args: unknown): Promise<unknown> {
+  return request("/mcp/policy", { method: "POST", body: args });
+}
+
 export async function hostedAddContentItems(items: string[]): Promise<unknown> {
   return request("/mcp/content", { method: "POST", body: { items } });
 }

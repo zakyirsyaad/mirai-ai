@@ -1,4 +1,4 @@
-import type { VoiceProfilePayload } from "@mirai/shared";
+import type { ContentPolicyPayload, VoiceProfilePayload } from "@mirai/shared";
 import type { Llm } from "./llm.js";
 import type { GroundingSignals } from "./source.js";
 import { voiceToPromptFragment } from "./voice.js";
@@ -24,6 +24,7 @@ Hard rules:
 export interface WriteBrief {
   angle: string;
   signals?: GroundingSignals;
+  policy?: ContentPolicyPayload | null;
 }
 
 export async function write(
@@ -37,6 +38,7 @@ export async function write(
     "",
     `Angle for this post: ${brief.angle}`,
     brief.signals ? `\nRelevant now: ${brief.signals.note}` : "",
+    brief.policy ? `\nContent policy:\n${policyToPromptFragment(brief.policy)}` : "",
     "",
     "Write the post.",
   ].join("\n");
@@ -52,10 +54,12 @@ export async function rewrite(
   llm: Llm,
   rawText: string,
   voice: VoiceProfilePayload,
+  policy?: ContentPolicyPayload | null,
   model?: string,
 ): Promise<string> {
   const prompt = [
     `Voice:\n${voiceToPromptFragment(voice)}`,
+    policy ? `\nContent policy:\n${policyToPromptFragment(policy)}` : "",
     "",
     `Raw content to repackage:\n${rawText}`,
     "",
@@ -63,6 +67,30 @@ export async function rewrite(
   ].join("\n");
   const text = await llm.complete({ system: REWRITE_SYSTEM, prompt, model });
   return clampTweet(text);
+}
+
+function policyToPromptFragment(policy: ContentPolicyPayload): string {
+  return [
+    policy.allowedTopics.length
+      ? `Allowed topics: ${policy.allowedTopics.join(", ")}`
+      : "",
+    policy.blockedTopics.length
+      ? `Never discuss: ${policy.blockedTopics.join(", ")}`
+      : "",
+    policy.blockedPhrases.length
+      ? `Never use phrases: ${policy.blockedPhrases.join(", ")}`
+      : "",
+    policy.language !== "any" ? `Language: ${policy.language}` : "",
+    policy.toneRules.length ? `Tone rules: ${policy.toneRules.join("; ")}` : "",
+    policy.formatRules.length
+      ? `Format rules: ${policy.formatRules.join("; ")}`
+      : "",
+    policy.requireApprovalFor.length
+      ? `Avoid subjects requiring approval: ${policy.requireApprovalFor.join(", ")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /** Strip wrapping quotes/whitespace and hard-cap to tweet length. */

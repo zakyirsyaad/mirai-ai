@@ -29,11 +29,12 @@ export function ConfigGenerator() {
         <div>
           <Badge>Interactive generator</Badge>
           <h2 className="mt-4 text-3xl font-semibold tracking-normal text-balance">
-            Generate the MCP config for your client.
+            Advanced runtime config fallback.
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Hosted mode is the default. Keep the endpoint as-is for production,
-            or override it when testing a staging API on a VPS IP.
+            Plugin install is the main path. Use this only when you need to
+            inspect or override the MCP runtime config for staging, local QA, or
+            a VPS test endpoint.
           </p>
         </div>
         <label className="grid min-w-0 gap-2 text-sm font-medium md:w-80">

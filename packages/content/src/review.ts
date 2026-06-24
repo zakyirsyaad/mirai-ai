@@ -6,10 +6,17 @@
  * REVIEW stage uses to POST or SKIP.
  */
 
+import {
+  ContentLanguage,
+  type ContentPolicyPayload,
+} from "@mirai/shared";
+
 export interface ReviewInput {
   text: string;
   /** Recently posted texts in this campaign, for dedupe. */
   recent: string[];
+  /** Optional campaign-level posting policy set by the user. */
+  policy?: ContentPolicyPayload | null;
 }
 
 export interface ReviewVerdict {
@@ -43,7 +50,120 @@ export function review(input: ReviewInput): ReviewVerdict {
     reasons.push("near-duplicate of a recent post");
   }
 
+  if (input.policy) {
+    reasons.push(...reviewPolicy(text, input.policy));
+  }
+
   return { ok: reasons.length === 0, reasons };
+}
+
+function reviewPolicy(text: string, policy: ContentPolicyPayload): string[] {
+  const reasons: string[] = [];
+  const lc = text.toLowerCase();
+
+  for (const phrase of policy.blockedPhrases) {
+    if (lc.includes(phrase.toLowerCase())) {
+      reasons.push(`blocked phrase: "${phrase}"`);
+    }
+  }
+
+  for (const topic of policy.blockedTopics) {
+    if (containsTopic(lc, topic)) {
+      reasons.push(`blocked topic: "${topic}"`);
+    }
+  }
+
+  if (
+    policy.allowedTopics.length > 0 &&
+    !policy.allowedTopics.some((topic) => containsTopic(lc, topic))
+  ) {
+    reasons.push(
+      `outside allowed topics: ${policy.allowedTopics.join(", ")}`,
+    );
+  }
+
+  for (const term of policy.requireApprovalFor) {
+    if (containsTopic(lc, term)) {
+      reasons.push(`requires approval: "${term}"`);
+    }
+  }
+
+  if (policy.language === ContentLanguage.Indonesian && looksEnglish(text)) {
+    reasons.push("language policy: expected Indonesian");
+  }
+  if (policy.language === ContentLanguage.English && looksIndonesian(text)) {
+    reasons.push("language policy: expected English");
+  }
+
+  for (const rule of policy.formatRules) {
+    const ruleLc = rule.toLowerCase();
+    if (ruleLc.includes("no hashtag") && /(^|\s)#\w+/.test(text)) {
+      reasons.push("format rule: no hashtags");
+    }
+    if (ruleLc.includes("no emoji") && /\p{Extended_Pictographic}/u.test(text)) {
+      reasons.push("format rule: no emoji");
+    }
+    if (ruleLc.includes("no mention") && /(^|\s)@\w+/.test(text)) {
+      reasons.push("format rule: no mentions");
+    }
+  }
+
+  return reasons;
+}
+
+function containsTopic(lcText: string, topic: string): boolean {
+  return lcText.includes(topic.toLowerCase());
+}
+
+function looksEnglish(text: string): boolean {
+  const lc = text.toLowerCase();
+  const englishHits = countMarkers(lc, [
+    " the ",
+    " and ",
+    " with ",
+    " for ",
+    " this ",
+    " that ",
+    " your ",
+  ]);
+  const indonesianHits = countMarkers(lc, [
+    " yang ",
+    " dan ",
+    " untuk ",
+    " dengan ",
+    " kalau ",
+    " bisa ",
+    " kita ",
+  ]);
+  return englishHits > indonesianHits + 1;
+}
+
+function looksIndonesian(text: string): boolean {
+  const lc = text.toLowerCase();
+  const indonesianHits = countMarkers(lc, [
+    " yang ",
+    " dan ",
+    " untuk ",
+    " dengan ",
+    " kalau ",
+    " bisa ",
+    " kita ",
+  ]);
+  const englishHits = countMarkers(lc, [
+    " the ",
+    " and ",
+    " with ",
+    " for ",
+    " this ",
+    " that ",
+    " your ",
+  ]);
+  return indonesianHits > englishHits + 1;
+}
+
+function countMarkers(text: string, markers: string[]): number {
+  const padded = ` ${text} `;
+  return markers.filter((marker) => padded.includes(marker)).length;
 }
 
 /** Jaccard similarity over word sets; >= 0.8 counts as a duplicate. */

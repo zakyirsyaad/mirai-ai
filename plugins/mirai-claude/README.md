@@ -18,12 +18,18 @@ Restart Claude Code/CLI after installation.
 ## Commands
 
 ```text
+/mirai:setup
 /mirai:status
 /mirai:activate
 /mirai:connect-x
+/mirai:policy
 /mirai:ideas
 /mirai:start
 /mirai:pause
 /mirai:resume
 /mirai:report
 ```
+
+Most users should start with `/mirai:setup`. It guides license activation, X
+OAuth, campaign brief, content policy, and the final approval gate before
+posting starts.

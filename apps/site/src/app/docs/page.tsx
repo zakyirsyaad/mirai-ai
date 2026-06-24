@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Terminal } from "lucide-react";
+import { ArrowLeft, Github, Terminal } from "lucide-react";
 import { CodeBlock } from "@/components/code-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ const flow = [
   "mirai_connect_x",
   "mirai_create_campaign",
   "mirai_set_voice_profile",
+  "mirai_set_content_policy",
   "mirai_start_autopost",
   "mirai_get_campaign",
   "mirai_get_report",
@@ -39,12 +40,20 @@ export default function DocsPage() {
             </span>
             Mirai
           </Link>
-          <Button variant="secondary" asChild>
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4" />
-              Home
-            </Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="secondary" asChild>
+              <a href={siteConfig.githubUrl} target="_blank" rel="noreferrer">
+                <Github className="h-4 w-4" />
+                GitHub
+              </a>
+            </Button>
+            <Button variant="secondary" asChild>
+              <Link href="/">
+                <ArrowLeft className="h-4 w-4" />
+                Home
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -79,10 +88,15 @@ export default function DocsPage() {
       <section className="border-y border-border bg-card/70">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
-            <Badge variant="secondary">Tool order</Badge>
+            <Badge variant="secondary">Guided setup</Badge>
             <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
               The client calls tools. Mirai owns the runtime.
             </h2>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+              Most users start with `/mirai setup &lt;license&gt;`. The plugin
+              walks through activation, X OAuth, campaign brief, content policy,
+              and the final approval gate.
+            </p>
           </div>
           <div className="rounded-lg border border-border bg-background p-5">
             <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
@@ -102,6 +116,11 @@ export default function DocsPage() {
                 </div>
               ))}
             </div>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+              `mirai_set_content_policy` controls allowed topics, blocked topics,
+              blocked phrases, language, tone rules, format rules, and
+              approval-only subjects before any draft can be posted.
+            </p>
           </div>
         </div>
       </section>
@@ -127,9 +146,10 @@ export default function DocsPage() {
           <AccordionItem value="api">
             <AccordionTrigger>The hosted API is unavailable.</AccordionTrigger>
             <AccordionContent>
-              Override the API URL in the config generator for staging. Production
-              should point to `https://api.mirai-agent.com` once the domain is
-              ready.
+              Normal users should not edit MCP config manually. For staging or
+              VPS testing only, use the advanced runtime config generator to
+              override `MIRAI_API_URL`. Production should point to
+              `https://api.mirai-agent.com` once the domain is ready.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="expired">

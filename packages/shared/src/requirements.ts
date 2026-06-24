@@ -24,6 +24,28 @@ export const ContentMode = {
 } as const;
 export type ContentMode = (typeof ContentMode)[keyof typeof ContentMode];
 
+/** Language guard for generated campaign posts. */
+export const ContentLanguage = {
+  Any: "any",
+  Indonesian: "id",
+  English: "en",
+  Mixed: "mixed",
+} as const;
+export type ContentLanguage =
+  (typeof ContentLanguage)[keyof typeof ContentLanguage];
+
+/** User-controlled posting policy applied before anything reaches X. */
+export const ContentPolicySchema = z.object({
+  allowedTopics: z.array(z.string().trim().min(1)).default([]),
+  blockedTopics: z.array(z.string().trim().min(1)).default([]),
+  blockedPhrases: z.array(z.string().trim().min(1)).default([]),
+  language: z.nativeEnum(ContentLanguage).default(ContentLanguage.Any),
+  toneRules: z.array(z.string().trim().min(1)).default([]),
+  formatRules: z.array(z.string().trim().min(1)).default([]),
+  requireApprovalFor: z.array(z.string().trim().min(1)).default([]),
+});
+export type ContentPolicyPayload = z.infer<typeof ContentPolicySchema>;
+
 /** Minimal requirements attached to a CROO order/negotiation. */
 export const OrderRequirementsSchema = z.object({
   service: z.nativeEnum(ServiceType),

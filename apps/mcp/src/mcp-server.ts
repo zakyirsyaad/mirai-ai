@@ -12,6 +12,7 @@ import {
   healthcheck,
   pauseAutopost,
   resumeAutopost,
+  setContentPolicy,
   setVoiceProfile,
   startAutopost,
 } from "./tools.js";
@@ -55,6 +56,17 @@ export async function runMcpServer(): Promise<void> {
       audience: z.string().optional(),
       goal: z.string().optional(),
       toneHint: z.string().optional(),
+      contentPolicy: z
+        .object({
+          allowedTopics: z.array(z.string()).optional(),
+          blockedTopics: z.array(z.string()).optional(),
+          blockedPhrases: z.array(z.string()).optional(),
+          language: z.enum(["any", "id", "en", "mixed"]).optional(),
+          toneRules: z.array(z.string()).optional(),
+          formatRules: z.array(z.string()).optional(),
+          requireApprovalFor: z.array(z.string()).optional(),
+        })
+        .optional(),
     },
     async (args) => json(await createCampaign(args)),
   );
@@ -70,6 +82,21 @@ export async function runMcpServer(): Promise<void> {
       sampleVoice: z.string(),
     },
     async (args) => json(await setVoiceProfile(args)),
+  );
+
+  server.tool(
+    "mirai_set_content_policy",
+    "Set hard filters for what Mirai may post automatically.",
+    {
+      allowedTopics: z.array(z.string()).optional(),
+      blockedTopics: z.array(z.string()).optional(),
+      blockedPhrases: z.array(z.string()).optional(),
+      language: z.enum(["any", "id", "en", "mixed"]).optional(),
+      toneRules: z.array(z.string()).optional(),
+      formatRules: z.array(z.string()).optional(),
+      requireApprovalFor: z.array(z.string()).optional(),
+    },
+    async (args) => json(await setContentPolicy(args)),
   );
 
   server.tool(

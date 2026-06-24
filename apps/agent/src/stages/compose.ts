@@ -1,5 +1,9 @@
 import { prisma, PostStage } from "@mirai/db";
-import { Stage, type VoiceProfilePayload } from "@mirai/shared";
+import {
+  ContentPolicySchema,
+  Stage,
+  type VoiceProfilePayload,
+} from "@mirai/shared";
 import { write, rewrite, type GroundingSignals } from "@mirai/content";
 import { llm } from "../clients.js";
 import { publishEvent, now } from "../publisher.js";
@@ -32,7 +36,7 @@ export async function processCompose(job: PostJob): Promise<void> {
 
   const post = await prisma.scheduledPost.findUniqueOrThrow({
     where: { id: scheduledPostId },
-    include: { campaign: { include: { voiceProfile: true } } },
+    include: { campaign: { include: { voiceProfile: true, contentPolicy: true } } },
   });
   const vp = post.campaign.voiceProfile;
   if (!vp) throw new Error(`Campaign ${campaignId} has no voice profile.`);
@@ -46,15 +50,19 @@ export async function processCompose(job: PostJob): Promise<void> {
   };
 
   const acquired = JSON.parse(post.rawMaterial ?? "{}") as Acquired;
+  const policy = post.campaign.contentPolicy
+    ? ContentPolicySchema.parse(post.campaign.contentPolicy)
+    : null;
   let draft: string;
   if (acquired.kind === "user") {
-    draft = await rewrite(llm, acquired.rawText, voice);
+    draft = await rewrite(llm, acquired.rawText, voice, policy);
   } else {
     draft = await write(
       llm,
       {
         angle: post.angle ?? acquired.signals.themes[0] ?? "an update",
         signals: acquired.signals,
+        policy,
       },
       voice,
     );

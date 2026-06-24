@@ -23,9 +23,9 @@ const serif = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Mirai - MCP-first X campaign agent",
+  title: "Mirai - Plugin-first X campaign agent",
   description:
-    "Mirai is an MCP-first agent for CROO-licensed autonomous X campaigns.",
+    "Mirai is a plugin-first agent for CROO-licensed autonomous X campaigns.",
 };
 
 export default function RootLayout({

@@ -1,5 +1,5 @@
 import { prisma, PostStage } from "@mirai/db";
-import { Stage } from "@mirai/shared";
+import { ContentPolicySchema, Stage } from "@mirai/shared";
 import { review } from "@mirai/content";
 import { publishEvent, now } from "../publisher.js";
 import { postQueue, postJobId, type PostJob } from "../queues.js";
@@ -21,6 +21,7 @@ export async function processReview(job: PostJob): Promise<void> {
 
   const post = await prisma.scheduledPost.findUniqueOrThrow({
     where: { id: scheduledPostId },
+    include: { campaign: { include: { contentPolicy: true } } },
   });
 
   // Recently posted text in this campaign, for near-duplicate detection.
@@ -36,7 +37,10 @@ export async function processReview(job: PostJob): Promise<void> {
   });
   const recent = recentPosts.map((p) => p.draftText ?? "").filter(Boolean);
 
-  const verdict = review({ text: post.draftText ?? "", recent });
+  const policy = post.campaign.contentPolicy
+    ? ContentPolicySchema.parse(post.campaign.contentPolicy)
+    : null;
+  const verdict = review({ text: post.draftText ?? "", recent, policy });
 
   if (!verdict.ok) {
     await prisma.scheduledPost.update({

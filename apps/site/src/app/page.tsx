@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock3,
   Code2,
+  Github,
   KeyRound,
   LockKeyhole,
   ServerCog,
@@ -16,6 +17,7 @@ import { HeroConsole } from "@/components/hero-console";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { siteConfig } from "@/lib/site";
 
 const clients = ["Codex", "Claude Code/CLI", "Hermes"];
 
@@ -46,6 +48,15 @@ export default function HomePage() {
           <Link className="hover:text-foreground" href="/docs">
             Docs
           </Link>
+          <a
+            className="inline-flex items-center gap-2 hover:text-foreground"
+            href={siteConfig.githubUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Github className="h-4 w-4" />
+            GitHub
+          </a>
         </nav>
       </header>
 
@@ -67,6 +78,12 @@ export default function HomePage() {
                 Read install docs
                 <ArrowRight className="h-4 w-4" />
               </Link>
+            </Button>
+            <Button size="lg" variant="secondary" asChild>
+              <a href={siteConfig.githubUrl} target="_blank" rel="noreferrer">
+                <Github className="h-4 w-4" />
+                GitHub repo
+              </a>
             </Button>
           </div>
           <p className="mt-4 max-w-xl text-sm text-muted-foreground">
@@ -91,7 +108,7 @@ export default function HomePage() {
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-primary/20 text-accent-foreground">
                   <Bot className="h-5 w-5" />
                 </div>
-                <CardTitle>Mirai 7-Day Autopost MCP</CardTitle>
+                <CardTitle>Mirai 7-Day Autopost</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="max-w-2xl text-muted-foreground">
@@ -103,6 +120,7 @@ export default function HomePage() {
                   {[
                     "14 scheduled posts",
                     "Hosted worker and scheduler",
+                    "Campaign content policy",
                     "X OAuth token encryption",
                     "Proof-of-work report",
                   ].map((item) => (
@@ -119,7 +137,7 @@ export default function HomePage() {
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-primary/20 text-accent-foreground">
                   <Sparkles className="h-5 w-5" />
                 </div>
-                <CardTitle>Mirai Voice & Ideas MCP</CardTitle>
+                <CardTitle>Mirai Voice & Ideas</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -167,11 +185,15 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-2">
           <div>
             <Badge variant="outline" className="border-white/20 text-white">
-              MCP-native
+              Plugin-native
             </Badge>
             <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
               Built for the agent clients people already use.
             </h2>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-white/70">
+              Mirai ships as client plugins and profiles. MCP stays underneath
+              as the runtime protocol, not as manual buyer setup.
+            </p>
           </div>
           <div className="grid gap-3">
             {clients.map((client) => (

@@ -39,6 +39,7 @@ so users do not need a global MCP install.
 
 ```text
 /mirai
+/mirai setup <license>
 /mirai status
 /mirai activate <license>
 /mirai connect-x
@@ -49,6 +50,15 @@ so users do not need a global MCP install.
 /mirai report
 /mirai ideas
 ```
+
+Most users should start with:
+
+```text
+/mirai setup <license>
+```
+
+The setup flow guides activation, X OAuth, campaign brief, content policy, and
+the final approval gate before posting starts.
 
 ## Hosted API
 

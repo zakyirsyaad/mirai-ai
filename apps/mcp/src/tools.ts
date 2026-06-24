@@ -9,6 +9,7 @@ import {
   hostedHealthcheck,
   hostedPauseAutopost,
   hostedResumeAutopost,
+  hostedSetContentPolicy,
   hostedSetVoiceProfile,
   hostedStartAutopost,
 } from "./hosted-client.js";
@@ -21,6 +22,16 @@ export interface VoiceProfilePayload {
   styleNotes: string[];
   doNots: string[];
   sampleVoice: string;
+}
+
+export interface ContentPolicyPayload {
+  allowedTopics?: string[];
+  blockedTopics?: string[];
+  blockedPhrases?: string[];
+  language?: "any" | "id" | "en" | "mixed";
+  toneRules?: string[];
+  formatRules?: string[];
+  requireApprovalFor?: string[];
 }
 
 export async function activateLicense(licenseKey: string): Promise<unknown> {
@@ -41,12 +52,17 @@ export async function createCampaign(args: {
   audience?: string;
   goal?: string;
   toneHint?: string;
+  contentPolicy?: ContentPolicyPayload;
 }): Promise<unknown> {
   return hostedCreateCampaign(args);
 }
 
 export async function setVoiceProfile(profile: VoiceProfilePayload): Promise<unknown> {
   return hostedSetVoiceProfile(profile);
+}
+
+export async function setContentPolicy(policy: ContentPolicyPayload): Promise<unknown> {
+  return hostedSetContentPolicy(policy);
 }
 
 export async function addContentItems(items: string[]): Promise<unknown> {

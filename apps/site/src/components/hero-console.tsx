@@ -23,6 +23,11 @@ const events = [
   },
   {
     icon: ShieldCheck,
+    label: "Content policy loaded",
+    detail: "allowed topics and blocked phrases enforced",
+  },
+  {
+    icon: ShieldCheck,
     label: "Expiry guard active",
     detail: "posting stops when entitlement closes",
   },
@@ -47,7 +52,7 @@ export function HeroConsole() {
           <span className="h-2.5 w-2.5 rounded-full bg-[#ffd166]" />
           <span className="h-2.5 w-2.5 rounded-full bg-primary" />
         </div>
-        <Badge variant="outline">hosted MCP</Badge>
+        <Badge variant="outline">hosted plugin</Badge>
       </div>
 
       <div className="grid gap-6 p-5 sm:p-6">
@@ -55,6 +60,10 @@ export function HeroConsole() {
           <p className="text-primary">$ mirai_activate_license</p>
           <p className="mt-2 text-white/80">
             ok: content-agent-7d · expires in 7 days
+          </p>
+          <p className="mt-3 text-primary">$ mirai_set_content_policy</p>
+          <p className="mt-2 text-white/80">
+            allowed: AI agents · blocked: politics, hype
           </p>
           <p className="mt-3 text-primary">$ mirai_start_autopost --approved</p>
           <p className="mt-2 text-white/80">

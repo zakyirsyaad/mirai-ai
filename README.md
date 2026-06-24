@@ -12,6 +12,8 @@ _Give a user a license, a connected X account, and a campaign window. Mirai hand
 ![License](https://img.shields.io/badge/License-MIT-white?style=for-the-badge)
 ![Node](https://img.shields.io/badge/Node-%3E%3D20-339933?style=for-the-badge)
 
+[Hire Mirai on CROO](https://agent.croo.network/agents/b73b523e-7f72-47da-ad83-52e9b1cb62a1)
+
 </div>
 
 ---
@@ -24,7 +26,7 @@ hosted OAuth, and operate the agent from Codex, Claude Code/CLI, or Hermes.
 
 There is no private buyer dashboard. The product is intentionally plugin-first:
 
-1. Buy a Mirai service on CROO.
+1. Buy a Mirai service on the [CROO Agent Store](https://agent.croo.network/agents/b73b523e-7f72-47da-ad83-52e9b1cb62a1).
 2. Copy the delivered `mirai_v1.<payload>.<signature>` license key.
 3. Install the Mirai plugin/profile for your client.
 4. Activate the license, connect X, and run Mirai from slash commands or natural language.
@@ -40,14 +42,14 @@ configure MCP manually; the plugin starts `@mirai-agent/mcp` through `npx`.
 - **CROO-first purchase flow**: CROO handles hiring, payment, and marketplace settlement.
 - **License-as-access**: sensitive actions verify signature, expiry, scope, and hosted entitlement.
 - **Local client, hosted execution**: users interact locally while scheduling, X tokens, posting, and reports live on the hosted runtime.
-- **Public website only**: `apps/site` is a marketing/docs site with an MCP config generator, not an authenticated dashboard.
+- **Public website only**: `apps/site` is a marketing/docs site with advanced runtime config fallback, not an authenticated dashboard.
 
 ## Services
 
 | Service | Access | Result |
 | --- | --- | --- |
-| **Mirai 7-Day Autopost MCP** | 7 days | Connect X, approve once, then run a 14-post hosted X campaign in autonomous or user-supplied mode. Posting stops when the license expires. |
-| **Mirai Voice & Ideas MCP** | 24 hours | Connect X and generate a voice profile plus tailored X content ideas. This service is read-only and cannot post. |
+| **Mirai 7-Day Autopost** | 7 days | Connect X, approve once, then run a 14-post hosted X campaign in autonomous or user-supplied mode. Posting stops when the license expires. |
+| **Mirai Voice & Ideas** | 24 hours | Connect X and generate a voice profile plus tailored X content ideas. This service is read-only and cannot post. |
 
 Service limits are encoded inside the signed license payload. Autopost licenses
 include posting scopes and a 14-post limit. Voice & Ideas licenses include only
@@ -106,10 +108,12 @@ Primary command surface:
 
 ```text
 /mirai
+/mirai setup <license>
 /mirai status
 /mirai activate <license>
 /mirai connect-x
 /mirai create <campaign brief>
+/mirai policy
 /mirai start
 /mirai pause
 /mirai resume
@@ -117,7 +121,16 @@ Primary command surface:
 /mirai ideas
 ```
 
-## MCP Tool Flow
+Most buyers can use one guided command first:
+
+```text
+/mirai setup <license>
+```
+
+The plugin then walks through license activation, X OAuth, campaign brief,
+content policy, and the approval gate before posting starts.
+
+## Plugin Tool Flow
 
 Autopost campaign:
 
@@ -126,10 +139,11 @@ Autopost campaign:
 3. `mirai_connect_x`
 4. `mirai_create_campaign`
 5. Optional: `mirai_set_voice_profile`
-6. Optional for user-supplied mode: `mirai_add_content_items`
-7. `mirai_start_autopost` with `approved=true`
-8. `mirai_get_campaign`
-9. `mirai_get_report`
+6. Optional: `mirai_set_content_policy`
+7. Optional for user-supplied mode: `mirai_add_content_items`
+8. `mirai_start_autopost` with `approved=true`
+9. `mirai_get_campaign`
+10. `mirai_get_report`
 
 Voice & Ideas:
 
@@ -142,13 +156,18 @@ Autopost requires one explicit approval before posting starts. After approval,
 the hosted worker may post automatically until the campaign completes, the user
 pauses it, or the license expires.
 
+Content policy can restrict what Mirai may post automatically. Supported fields
+are `allowedTopics`, `blockedTopics`, `blockedPhrases`, `language`,
+`toneRules`, `formatRules`, and `requireApprovalFor`. Drafts that violate hard
+policy checks are skipped before they reach X.
+
 ## Architecture
 
 ```text
 apps/
   agent/   CROO Provider, hosted MCP API, entitlement server, worker, scheduler
   mcp/     npm package and `mirai` binary, stdio MCP server
-  site/    public Next.js website and docs/config generator
+  site/    public Next.js website, docs, and advanced runtime fallback
 packages/
   croo/    @croo-network/sdk wrapper and normalized lifecycle events
   x/       X OAuth2 PKCE, posting, owned reads, real/mock clients
@@ -350,7 +369,7 @@ pnpm site:build
 ## Hackathon Checklist
 
 - [x] Open source (MIT)
-- [x] MCP-first buyer experience
+- [x] Plugin-first buyer experience
 - [x] CROO Provider integration with SDK lifecycle
 - [x] Signed license delivery
 - [x] Hosted worker mode

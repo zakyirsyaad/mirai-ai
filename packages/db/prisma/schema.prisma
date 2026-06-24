@@ -172,6 +172,7 @@ model Campaign {
   updatedAt       DateTime       @updatedAt
 
   voiceProfile   VoiceProfile?
+  contentPolicy  ContentPolicy?
   contentItems   ContentItem[]
   scheduledPosts ScheduledPost[]
 
@@ -188,6 +189,22 @@ enum CampaignStatus {
   ACTIVE
   PAUSED
   COMPLETED
+}
+
+/// User-defined hard/soft policy for what Mirai may post automatically.
+model ContentPolicy {
+  id                 String   @id @default(cuid())
+  campaignId         String   @unique
+  campaign           Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  allowedTopics      String[]
+  blockedTopics      String[]
+  blockedPhrases     String[]
+  language           String   @default("any")
+  toneRules          String[]
+  formatRules        String[]
+  requireApprovalFor String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 // ─────────────────────────── Per-post pipeline ───────────────────────────

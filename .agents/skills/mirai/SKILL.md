@@ -11,6 +11,17 @@ Use Mirai through MCP tools. Treat the MCP tools as the source of truth for camp
 
 ## Tool Order
 
+For guided first-run setup:
+
+1. Call `mirai_activate_license` if a license is provided or ask for it if missing.
+2. Call `mirai_healthcheck`.
+3. Call `mirai_connect_x` and wait for the OAuth callback when needed.
+4. Collect campaign brief: niche, audience, goal, content mode, and tone.
+5. Call `mirai_create_campaign`.
+6. Collect and call `mirai_set_content_policy`.
+7. If user-supplied mode is selected, collect content items and call `mirai_add_content_items`.
+8. Call `mirai_get_campaign`, summarize the setup, then ask for explicit approval before calling `mirai_start_autopost`.
+
 For a normal 7-day autopost campaign:
 
 1. Call `mirai_healthcheck`.
@@ -18,9 +29,10 @@ For a normal 7-day autopost campaign:
 3. Call `mirai_connect_x`.
 4. Call `mirai_create_campaign` with the requested mode and campaign brief.
 5. Call `mirai_set_voice_profile` if the user provides explicit voice details or wants manual voice control.
-6. Call `mirai_add_content_items` only for user-supplied mode.
-7. Before posting, summarize account, mode, expiry, and 14-post limit, then call `mirai_start_autopost` with `approved=true` only after the user clearly approves.
-8. Use `mirai_get_campaign` for status and `mirai_get_report` for proof-of-work.
+6. Call `mirai_set_content_policy` if the user provides allowed topics, blocked topics, blocked phrases, language, tone, format, or approval-only subjects.
+7. Call `mirai_add_content_items` only for user-supplied mode.
+8. Before posting, summarize account, mode, expiry, 14-post limit, and active content policy, then call `mirai_start_autopost` with `approved=true` only after the user clearly approves.
+9. Use `mirai_get_campaign` for status and `mirai_get_report` for proof-of-work.
 
 For Voice & Ideas:
 
@@ -32,6 +44,7 @@ For Voice & Ideas:
 ## Safety Rules
 
 - Ask for explicit user approval before calling `mirai_start_autopost` with `approved=true`.
+- Before starting autopost, ask for or confirm content filters: allowed topics, blocked topics, blocked phrases, language, tone rules, format rules, and approval-only subjects.
 - Never request or expose raw X access tokens, refresh tokens, private license keys, or `.env` secrets.
 - If a license is expired, revoked, missing a scope, or remote entitlement check fails, explain the status and do not attempt posting.
 - If `mirai_connect_x` opens OAuth, let the browser/local callback flow complete; do not ask the user to paste X tokens.
@@ -41,11 +54,13 @@ For Voice & Ideas:
 ## Common Requests
 
 - "Status", "how is Mirai doing", "campaign progress": call `mirai_get_campaign`.
+- "Setup", "guide me", "mulai dari awal", "tuntun aku": follow the guided first-run setup.
 - "Start posting", "run campaign", "approve autopost": call `mirai_get_campaign`, summarize the consequences, then call `mirai_start_autopost` only with explicit approval.
 - "Pause/stop": call `mirai_pause_autopost`.
 - "Continue/resume": call `mirai_resume_autopost`.
 - "Report", "proof", "tweet URLs", "metrics": call `mirai_get_report`.
 - "Use my notes/content": call `mirai_add_content_items`, then confirm user-supplied mode in campaign status.
+- "Only post about...", "don't post about...", "filter posts", "content policy": call `mirai_set_content_policy`.
 - "Voice ideas only": call `mirai_generate_voice_ideas`; do not call posting tools.
 
 ## Runtime
