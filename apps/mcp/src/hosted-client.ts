@@ -1,11 +1,14 @@
-import { loadEnv } from "@mirai/shared";
+import { loadConfig } from "./config.js";
 import { readLocalLicense, writeLocalLicense } from "./license-store.js";
+import { verifyLicense } from "./license.js";
 
 export function isHostedMode(): boolean {
-  return loadEnv().MIRAI_RUNTIME_MODE === "hosted";
+  return true;
 }
 
 export async function hostedActivate(licenseKey: string): Promise<unknown> {
+  const config = loadConfig();
+  verifyLicense(licenseKey.trim(), config.licensePublicKey);
   const result = await request("/mcp/activate", {
     method: "POST",
     body: { licenseKey },
@@ -16,10 +19,10 @@ export async function hostedActivate(licenseKey: string): Promise<unknown> {
 }
 
 export async function hostedHealthcheck(): Promise<unknown> {
-  const env = loadEnv();
+  const config = loadConfig();
   let api: unknown;
   try {
-    const res = await fetch(`${env.MIRAI_API_URL.replace(/\/$/, "")}/health`, {
+    const res = await fetch(`${config.apiUrl.replace(/\/$/, "")}/health`, {
       signal: AbortSignal.timeout(5_000),
     });
     api = await res.json();
@@ -35,6 +38,7 @@ export async function hostedHealthcheck(): Promise<unknown> {
   return {
     ok: typeof api === "object" && api !== null && "ok" in api ? Boolean(api.ok) : false,
     mode: "hosted",
+    apiUrl: config.apiUrl,
     api,
     license,
   };
@@ -97,10 +101,10 @@ async function request(
     licenseKey?: string | null;
   },
 ): Promise<unknown> {
-  const env = loadEnv();
+  const config = loadConfig();
   const licenseKey =
     args.licenseKey === undefined ? await requireLocalLicense() : args.licenseKey;
-  const res = await fetch(`${env.MIRAI_API_URL.replace(/\/$/, "")}${path}`, {
+  const res = await fetch(`${config.apiUrl.replace(/\/$/, "")}${path}`, {
     method: args.method,
     signal: AbortSignal.timeout(10_000),
     headers: {

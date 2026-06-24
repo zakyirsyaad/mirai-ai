@@ -1,3 +1,4 @@
 export * from "./tools.js";
 export * from "./license-store.js";
-export * from "./entitlement-client.js";
+export * from "./license.js";
+export * from "./config.js";

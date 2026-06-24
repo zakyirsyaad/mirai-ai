@@ -14,7 +14,7 @@ There is no private user dashboard. The user experience is:
 
 1. Buy a Mirai service on CROO.
 2. Copy the delivered `mirai_v1.<payload>.<signature>` license key.
-3. Install `@mirai/mcp`.
+3. Install `@mirai-agent/mcp`.
 4. Add `mirai mcp` to an MCP client.
 5. Activate the license, connect X, and run Mirai through MCP tools.
 
@@ -46,7 +46,7 @@ read/report/ideas scopes.
 ## Buyer Install
 
 ```bash
-npm install -g @mirai/mcp
+npm install -g @mirai-agent/mcp
 mirai doctor
 ```
 
@@ -129,7 +129,7 @@ The default development mode uses mocks:
 Local MCP development:
 
 ```bash
-pnpm --filter @mirai/mcp build
+pnpm --filter @mirai-agent/mcp build
 node apps/mcp/dist/cli.js doctor
 node apps/mcp/dist/cli.js config local
 node apps/mcp/dist/cli.js mcp
@@ -162,7 +162,7 @@ Site env examples:
 ```bash
 NEXT_PUBLIC_CROO_MARKETPLACE_URL=
 NEXT_PUBLIC_MIRAI_API_URL=https://api.mirai-agent.com
-NEXT_PUBLIC_NPM_PACKAGE_NAME=@mirai/mcp
+NEXT_PUBLIC_NPM_PACKAGE_NAME=@mirai-agent/mcp
 ```
 
 Only `NEXT_PUBLIC_*` values are exposed to the browser. Do not put private API

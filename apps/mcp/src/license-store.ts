@@ -1,12 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { loadConfig } from "./config.js";
 import {
-  loadEnv,
   verifyLicense,
   type LicensePayload,
   type VerifiedLicense,
-} from "@mirai/shared";
+} from "./license.js";
 
 export const MIRAI_HOME = join(homedir(), ".mirai");
 export const LICENSE_PATH = join(MIRAI_HOME, "license");
@@ -29,20 +29,20 @@ export async function requireVerifiedLicense(): Promise<VerifiedLicense> {
   if (!licenseKey) {
     throw new Error("Mirai is not activated. Run mirai_activate_license first.");
   }
-  const env = loadEnv();
-  if (!env.MIRAI_LICENSE_PUBLIC_KEY) {
+  const config = loadConfig();
+  if (!config.licensePublicKey) {
     throw new Error("MIRAI_LICENSE_PUBLIC_KEY is required to verify licenses.");
   }
-  return verifyLicense(licenseKey, env.MIRAI_LICENSE_PUBLIC_KEY);
+  return verifyLicense(licenseKey, config.licensePublicKey);
 }
 
 export async function getLocalLicensePayload(): Promise<LicensePayload | null> {
   const licenseKey = await readLocalLicense();
   if (!licenseKey) return null;
-  const env = loadEnv();
-  if (!env.MIRAI_LICENSE_PUBLIC_KEY) return null;
+  const config = loadConfig();
+  if (!config.licensePublicKey) return null;
   try {
-    return verifyLicense(licenseKey, env.MIRAI_LICENSE_PUBLIC_KEY).payload;
+    return verifyLicense(licenseKey, config.licensePublicKey).payload;
   } catch {
     return null;
   }

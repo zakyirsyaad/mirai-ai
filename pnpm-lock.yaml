@@ -54,21 +54,6 @@ importers:
 
   apps/mcp:
     dependencies:
-      '@mirai/agent':
-        specifier: workspace:*
-        version: link:../agent
-      '@mirai/content':
-        specifier: workspace:*
-        version: link:../../packages/content
-      '@mirai/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@mirai/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-      '@mirai/x':
-        specifier: workspace:*
-        version: link:../../packages/x
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@3.25.76)

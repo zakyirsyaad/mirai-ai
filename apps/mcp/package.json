@@ -1,12 +1,12 @@
 {
-  "name": "@mirai/mcp",
+  "name": "@mirai-agent/mcp",
   "version": "0.1.0",
   "private": false,
-  "description": "Mirai MCP local agent runtime for CROO-licensed autonomous X campaigns.",
+  "description": "Mirai MCP client for CROO-licensed autonomous X campaigns.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "mirai": "./dist/cli.js"
+    "mirai": "dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,6 +24,7 @@
   },
   "files": [
     "dist",
+    "README.md",
     "package.json"
   ],
   "publishConfig": {
@@ -33,11 +34,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@mirai/agent": "workspace:*",
-    "@mirai/content": "workspace:*",
-    "@mirai/db": "workspace:*",
-    "@mirai/shared": "workspace:*",
-    "@mirai/x": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^3.24.1"
   },

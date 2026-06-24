@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "Mirai",
   defaultApiUrl:
     process.env.NEXT_PUBLIC_MIRAI_API_URL ?? "https://api.mirai-agent.com",
-  packageName: process.env.NEXT_PUBLIC_NPM_PACKAGE_NAME ?? "@mirai/mcp",
+  packageName: process.env.NEXT_PUBLIC_NPM_PACKAGE_NAME ?? "@mirai-agent/mcp",
   crooUrl: process.env.NEXT_PUBLIC_CROO_MARKETPLACE_URL ?? "",
 };
 

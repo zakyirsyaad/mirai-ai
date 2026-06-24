@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { ContentMode } from "@mirai/db";
 import {
   activateLicense,
   addContentItems,
@@ -49,7 +48,7 @@ export async function runMcpServer(): Promise<void> {
     "Create or configure the local 7-day Mirai autopost campaign.",
     {
       contentMode: z
-        .nativeEnum(ContentMode)
+        .enum(["AUTONOMOUS", "USER_SUPPLIED"])
         .optional()
         .describe("AUTONOMOUS or USER_SUPPLIED"),
       niche: z.string().optional(),

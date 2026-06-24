@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -10,7 +9,7 @@ import { healthcheck } from "./tools.js";
 import {
   DEFAULT_MIRAI_API_URL,
   DEFAULT_MIRAI_LICENSE_PUBLIC_KEY,
-} from "@mirai/shared";
+} from "./config.js";
 
 const [, , command = "help", ...args] = process.argv;
 
@@ -37,10 +36,10 @@ async function main(cmd: string, args: string[]): Promise<void> {
       await runMcpServer();
       return;
     case "worker":
-      await runWorker();
+      printHostedOnly("worker");
       return;
     case "start":
-      await runWorker();
+      printHostedOnly("start");
       return;
     case "help":
     default:
@@ -99,12 +98,11 @@ volumes:
 }
 
 async function infra(action: string): Promise<void> {
-  const composePath = join(MIRAI_HOME, "docker-compose.yml");
   if (action !== "up" && action !== "down") {
     console.log("Usage: mirai infra up|down");
     return;
   }
-  await run("docker", ["compose", "-f", composePath, action === "up" ? "up" : "down", action === "up" ? "-d" : ""]);
+  printHostedOnly(`infra ${action}`);
 }
 
 function printMcpConfig(format: string): void {
@@ -204,27 +202,10 @@ async function readExistingEnv(key: string): Promise<string | null> {
   return null;
 }
 
-async function runWorker(): Promise<void> {
-  const { startLocalRuntime } = await import("@mirai/agent");
-  const runtime = startLocalRuntime();
-  console.error("[mirai] local worker and scheduler started.");
-  const shutdown = async (signal: string): Promise<void> => {
-    console.error(`[mirai] ${signal} received; shutting down.`);
-    await runtime.close();
-    process.exit(0);
-  };
-  process.on("SIGINT", () => void shutdown("SIGINT"));
-  process.on("SIGTERM", () => void shutdown("SIGTERM"));
-}
-
-async function run(bin: string, args: string[]): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(bin, args.filter(Boolean), { stdio: "inherit" });
-    child.on("exit", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${bin} exited with ${code ?? "unknown"}`));
-    });
-  });
+function printHostedOnly(command: string): void {
+  console.log(
+    `mirai ${command} is for self-hosted development builds. The npm package uses hosted mode by default; run mirai mcp from your MCP client.`,
+  );
 }
 
 function printHelp(): void {

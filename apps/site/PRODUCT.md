@@ -10,7 +10,7 @@ Mirai's public website is for CROO Marketplace buyers, AI-agent builders, and MC
 
 ## Product Purpose
 
-The site explains Mirai as an MCP-first local-client experience backed by a hosted worker runtime. Success means a buyer can trust the CROO purchase flow, understand the two services, install `@mirai/mcp`, generate the right client config, and know that posting, expiry, and proof-of-work are handled by Mirai after license activation.
+The site explains Mirai as an MCP-first local-client experience backed by a hosted worker runtime. Success means a buyer can trust the CROO purchase flow, understand the two services, install `@mirai-agent/mcp`, generate the right client config, and know that posting, expiry, and proof-of-work are handled by Mirai after license activation.
 
 ## Brand Personality
 
