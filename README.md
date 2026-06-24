@@ -2,9 +2,9 @@
 
 # Mirai AI - Autonomous Content Agent
 
-### MCP-first autonomous X content agent for the CROO Network
+### Plugin-first autonomous X content agent for the CROO Network
 
-_Give a user a license, a connected X account, and a campaign window. Mirai handles voice, ideas, scheduling, posting, expiry, and proof-of-work from any MCP client._
+_Give a user a license, a connected X account, and a campaign window. Mirai handles voice, ideas, scheduling, posting, expiry, and proof-of-work from Codex, Claude Code, Cursor, Hermes, or any MCP-capable client._
 
 ![CROO](https://img.shields.io/badge/CROO-Provider-65E84F?style=for-the-badge)
 ![MCP](https://img.shields.io/badge/MCP-stdio-111111?style=for-the-badge)
@@ -23,17 +23,20 @@ Mirai on CROO, receive a signed license key, connect their X account through
 hosted OAuth, and operate the agent from Claude Code, Codex, Cursor, Hermes, or
 any MCP-compatible client.
 
-There is no private buyer dashboard. The product is intentionally MCP-first:
+There is no private buyer dashboard. The product is intentionally plugin-first:
 
 1. Buy a Mirai service on CROO.
 2. Copy the delivered `mirai_v1.<payload>.<signature>` license key.
-3. Install `@mirai-agent/mcp`.
-4. Add `mirai mcp` to an MCP client.
-5. Activate the license, connect X, and run Mirai through MCP tools.
+3. Install the Mirai plugin/profile for your client.
+4. Activate the license, connect X, and run Mirai from slash commands or natural language.
+
+MCP is still the engine underneath the plugin. Users normally do not install or
+configure MCP manually; the plugin starts `@mirai-agent/mcp` through `npx`.
 
 ## Product Shape
 
-- **MCP-first**: Mirai runs inside agent clients through stdio MCP.
+- **Plugin-first**: users install a Mirai plugin/profile; MCP runs behind the scenes.
+- **MCP-compatible**: every plugin uses the same stdio MCP runtime and hosted API.
 - **Hosted by default**: users do not run Docker, Postgres, Redis, or workers.
 - **CROO-first purchase flow**: CROO handles hiring, payment, and marketplace settlement.
 - **License-as-access**: sensitive actions verify signature, expiry, scope, and hosted entitlement.
@@ -53,63 +56,34 @@ read/report/ideas scopes.
 
 ## Buyer Quickstart
 
-Install the MCP client package:
-
-```bash
-npm install -g @mirai-agent/mcp
-mirai doctor
-```
-
-Register Mirai as an MCP server in your client:
-
-```json
-{
-  "mcpServers": {
-    "mirai": {
-      "command": "mirai",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-The MCP command is always:
-
-```bash
-mirai mcp
-```
-
-`mirai config ...` is only a copy/paste helper. It prints the same MCP config in
-the shape expected by each client; it is not an activation step and users do not
-need to run it if they add the MCP server another way.
-
-```bash
-mirai config cursor
-mirai config claude
-mirai config codex
-mirai config hermes
-mirai config json
-```
-
-Hosted mode is the default. Users normally do not need `mirai init`. Use
-`mirai init --hosted --api-url https://api.example.com --force` only when
-overriding the packaged hosted API URL.
-
-## Codex Plugin
-
-The MCP package is the universal engine. The Codex plugin is the UX layer for
-Codex users. It was generated and validated using Codex's `plugin-creator`
-workflow, so end users do not scaffold anything themselves; they install the
-ready-made Mirai marketplace entry from this repo.
-
-Install from GitHub:
+Codex:
 
 ```bash
 codex plugin marketplace add zakyirsyaad/mirai-ai --ref main --sparse .agents --sparse plugins/mirai-codex
 codex plugin add mirai-codex@mirai-ai
 ```
 
-Then restart Codex or open a new thread and use:
+Claude Code:
+
+```bash
+claude plugin marketplace add zakyirsyaad/mirai-ai --sparse .claude-plugin plugins/mirai-claude
+claude plugin install mirai-claude@mirai-ai
+```
+
+Hermes:
+
+```bash
+hermes plugins install zakyirsyaad/mirai-ai --enable
+hermes mcp add mirai --command npx --env MIRAI_API_URL=http://mirai.43-129-56-85.sslip.io --args -y @mirai-agent/mcp@latest mcp
+```
+
+Cursor:
+
+```text
+Use the repo's .cursor/mcp.json and .cursor/rules/mirai.mdc profile files.
+```
+
+After installing a plugin/profile, restart the client and run Mirai:
 
 ```text
 /mirai status
@@ -118,25 +92,25 @@ Then restart Codex or open a new thread and use:
 /mirai ideas
 ```
 
-The plugin in `plugins/mirai-codex`:
+Advanced fallback: users can still install `@mirai-agent/mcp` directly and add
+it as an MCP server manually, but this is not the primary buyer flow.
 
-- installs the Mirai MCP server config
-- adds the Mirai skill instructions
-- ships a `/mirai` command workflow
+## Plugin Adapters
 
-Repo-local marketplace entry:
+The MCP package is the hidden engine. Each client gets a plugin/profile adapter
+that starts the same Mirai runtime through `npx`.
 
-```text
-.agents/plugins/marketplace.json
-```
+| Client | Adapter | User installs |
+| --- | --- | --- |
+| Codex | `plugins/mirai-codex` + `.agents/plugins/marketplace.json` | Codex plugin marketplace entry |
+| Claude Code | `plugins/mirai-claude` + `.claude-plugin/marketplace.json` | Claude plugin marketplace entry |
+| Cursor | `.cursor/mcp.json` + `.cursor/rules/mirai.mdc` | Cursor project profile |
+| Hermes | `plugin.yaml` + `plugins/mirai-hermes` | Hermes Git plugin profile |
 
-Plugin path:
+The Codex plugin was generated and validated using Codex's `plugin-creator`
+workflow. End users do not scaffold anything themselves.
 
-```text
-plugins/mirai-codex
-```
-
-Primary command:
+Primary command surface:
 
 ```text
 /mirai

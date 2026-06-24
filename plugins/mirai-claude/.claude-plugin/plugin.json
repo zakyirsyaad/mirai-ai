@@ -1,0 +1,38 @@
+{
+  "name": "mirai-claude",
+  "version": "0.1.0",
+  "description": "Claude Code plugin for Mirai AI - Autonomous Content Agent.",
+  "author": {
+    "name": "Mirai AI",
+    "url": "https://github.com/zakyirsyaad/mirai-ai"
+  },
+  "homepage": "https://github.com/zakyirsyaad/mirai-ai",
+  "repository": "https://github.com/zakyirsyaad/mirai-ai",
+  "license": "MIT",
+  "keywords": [
+    "mirai",
+    "claude-code",
+    "mcp",
+    "croo",
+    "x"
+  ],
+  "commands": [
+    "./commands/"
+  ],
+  "skills": [
+    "./skills/"
+  ],
+  "mcpServers": {
+    "mirai": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@mirai-agent/mcp@latest",
+        "mcp"
+      ],
+      "env": {
+        "MIRAI_API_URL": "http://mirai.43-129-56-85.sslip.io"
+      }
+    }
+  }
+}

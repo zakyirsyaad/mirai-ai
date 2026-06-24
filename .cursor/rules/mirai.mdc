@@ -1,0 +1,22 @@
+---
+description: Use Mirai AI from Cursor through the bundled MCP runtime.
+alwaysApply: false
+---
+
+# Mirai AI
+
+Use Mirai MCP tools as the source of truth for license status, X connection,
+campaign state, and reports.
+
+Normal flow:
+
+1. `mirai_healthcheck`
+2. `mirai_activate_license`
+3. `mirai_connect_x`
+4. `mirai_create_campaign`
+5. `mirai_start_autopost` only after explicit user approval
+6. `mirai_get_campaign`
+7. `mirai_get_report`
+
+Never request or expose raw X tokens, refresh tokens, private license keys,
+database URLs, Redis passwords, or `.env` secrets.

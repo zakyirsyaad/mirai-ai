@@ -12,9 +12,15 @@ import {
 } from "@/components/ui/accordion";
 import { siteConfig } from "@/lib/site";
 
-const installCommand = `npm install -g ${siteConfig.packageName}`;
 const codexPluginInstall = `codex plugin marketplace add zakyirsyaad/mirai-ai --ref main --sparse .agents --sparse plugins/mirai-codex
 codex plugin add mirai-codex@mirai-ai`;
+const claudePluginInstall = `claude plugin marketplace add zakyirsyaad/mirai-ai --sparse .claude-plugin plugins/mirai-claude
+claude plugin install mirai-claude@mirai-ai`;
+const hermesPluginInstall = `hermes plugins install zakyirsyaad/mirai-ai --enable
+hermes mcp add mirai --command npx --env MIRAI_API_URL=${siteConfig.defaultApiUrl} --args -y ${siteConfig.packageName}@latest mcp`;
+const cursorProfileInstall = `Copy from the Mirai repo:
+.cursor/mcp.json
+.cursor/rules/mirai.mdc`;
 
 const flow = [
   "mirai_activate_license",
@@ -50,12 +56,12 @@ export default function DocsPage() {
         <div className="max-w-3xl">
           <Badge>Install docs</Badge>
           <h1 className="mt-5 text-5xl font-semibold tracking-[-0.03em] text-balance">
-            Add Mirai to your MCP client.
+            Install Mirai as a plugin.
           </h1>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">
-            Codex users can install the Mirai plugin for `/mirai` commands.
-            Other MCP clients can install the npm package and paste the generated
-            MCP config.
+            Use the plugin/profile for your client. Mirai still uses MCP under
+            the hood, but users do not need to install or configure the MCP
+            package manually.
           </p>
         </div>
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -64,8 +70,16 @@ export default function DocsPage() {
             <CodeBlock value={codexPluginInstall} />
           </div>
           <div>
-            <div className="mb-3 text-sm font-semibold">Universal MCP package</div>
-            <CodeBlock value={installCommand} />
+            <div className="mb-3 text-sm font-semibold">Claude Code plugin</div>
+            <CodeBlock value={claudePluginInstall} />
+          </div>
+          <div>
+            <div className="mb-3 text-sm font-semibold">Hermes plugin profile</div>
+            <CodeBlock value={hermesPluginInstall} />
+          </div>
+          <div>
+            <div className="mb-3 text-sm font-semibold">Cursor profile</div>
+            <CodeBlock value={cursorProfileInstall} />
           </div>
         </div>
       </section>
@@ -111,8 +125,8 @@ export default function DocsPage() {
             <AccordionTrigger>Mirai says the license is missing.</AccordionTrigger>
             <AccordionContent>
               Call `mirai_activate_license` with the signed license delivered
-              after the CROO order. The local MCP package stores it for future
-              tool calls.
+              after the CROO order. The plugin runtime stores it for future
+              Mirai tool calls.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="hosted">

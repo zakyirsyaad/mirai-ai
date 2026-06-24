@@ -1,0 +1,38 @@
+{
+  "name": "mirai-ai",
+  "owner": {
+    "name": "Mirai AI"
+  },
+  "metadata": {
+    "description": "Mirai AI plugins for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "mirai-claude",
+      "source": "./plugins/mirai-claude",
+      "description": "Claude Code plugin for Mirai AI - Autonomous Content Agent.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Mirai AI"
+      },
+      "homepage": "https://github.com/zakyirsyaad/mirai-ai",
+      "repository": "https://github.com/zakyirsyaad/mirai-ai",
+      "license": "MIT",
+      "keywords": [
+        "mirai",
+        "claude-code",
+        "mcp",
+        "croo",
+        "x"
+      ],
+      "category": "productivity",
+      "tags": [
+        "mirai",
+        "mcp",
+        "x",
+        "croo"
+      ],
+      "strict": false
+    }
+  ]
+}

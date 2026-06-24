@@ -1,6 +1,6 @@
 # Mirai Codex Plugin
 
-Codex-native wrapper for Mirai AI - Autonomous Content Agent.
+Codex-native plugin for Mirai AI - Autonomous Content Agent.
 
 This plugin provides:
 
@@ -33,7 +33,7 @@ The MCP config uses:
 npx -y @mirai-agent/mcp@latest mcp
 ```
 
-so users do not need a global install.
+so users do not need a global MCP install.
 
 ## Commands
 

@@ -1,0 +1,4 @@
+name: mirai-ai
+version: "0.1.0"
+description: "Mirai AI - Autonomous Content Agent plugin profile for Hermes Agent. Provides instructions for running Mirai through the hosted MCP runtime."
+author: "Mirai AI"
