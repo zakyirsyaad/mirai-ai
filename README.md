@@ -95,6 +95,41 @@ Hosted mode is the default. Users normally do not need `mirai init`. Use
 `mirai init --hosted --api-url https://api.example.com --force` only when
 overriding the packaged hosted API URL.
 
+## Codex Plugin
+
+The MCP package is the universal engine. The Codex plugin in
+`plugins/mirai-codex` is the UX layer for Codex users:
+
+- installs the Mirai MCP server config
+- adds the Mirai skill instructions
+- ships a `/mirai` command workflow
+
+Repo-local marketplace entry:
+
+```text
+.agents/plugins/marketplace.json
+```
+
+Plugin path:
+
+```text
+plugins/mirai-codex
+```
+
+Primary command:
+
+```text
+/mirai status
+/mirai activate <license>
+/mirai connect-x
+/mirai create <campaign brief>
+/mirai start
+/mirai pause
+/mirai resume
+/mirai report
+/mirai ideas
+```
+
 ## MCP Tool Flow
 
 Autopost campaign:

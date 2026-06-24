@@ -1,0 +1,43 @@
+{
+  "name": "mirai-codex",
+  "version": "0.1.0",
+  "description": "Codex plugin for Mirai AI - Autonomous Content Agent.",
+  "author": {
+    "name": "Mirai AI",
+    "url": "https://github.com/zakyirsyaad/mirai-ai"
+  },
+  "homepage": "https://github.com/zakyirsyaad/mirai-ai",
+  "repository": "https://github.com/zakyirsyaad/mirai-ai",
+  "license": "MIT",
+  "keywords": [
+    "mirai",
+    "codex",
+    "mcp",
+    "croo",
+    "x",
+    "autonomous-content"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Mirai AI",
+    "shortDescription": "Run CROO-licensed Mirai campaigns from Codex.",
+    "longDescription": "Mirai AI adds a Codex-native workflow for activating Mirai licenses, connecting X, creating 7-day autopost campaigns, generating voice ideas, and checking campaign reports through the Mirai MCP server.",
+    "developerName": "Mirai AI",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/zakyirsyaad/mirai-ai",
+    "privacyPolicyURL": "https://github.com/zakyirsyaad/mirai-ai",
+    "termsOfServiceURL": "https://github.com/zakyirsyaad/mirai-ai",
+    "brandColor": "#64E44D",
+    "defaultPrompt": [
+      "Use /mirai status to check my Mirai campaign.",
+      "Use /mirai activate with my license key.",
+      "Use /mirai ideas to generate voice and content ideas."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

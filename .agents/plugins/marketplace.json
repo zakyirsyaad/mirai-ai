@@ -1,0 +1,20 @@
+{
+  "name": "mirai-ai",
+  "interface": {
+    "displayName": "Mirai AI"
+  },
+  "plugins": [
+    {
+      "name": "mirai-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mirai-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
