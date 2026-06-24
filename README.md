@@ -97,8 +97,28 @@ overriding the packaged hosted API URL.
 
 ## Codex Plugin
 
-The MCP package is the universal engine. The Codex plugin in
-`plugins/mirai-codex` is the UX layer for Codex users:
+The MCP package is the universal engine. The Codex plugin is the UX layer for
+Codex users. It was generated and validated using Codex's `plugin-creator`
+workflow, so end users do not scaffold anything themselves; they install the
+ready-made Mirai marketplace entry from this repo.
+
+Install from GitHub:
+
+```bash
+codex plugin marketplace add zakyirsyaad/mirai-ai --ref main --sparse .agents --sparse plugins/mirai-codex
+codex plugin add mirai-codex@mirai-ai
+```
+
+Then restart Codex or open a new thread and use:
+
+```text
+/mirai status
+/mirai activate <license>
+/mirai connect-x
+/mirai ideas
+```
+
+The plugin in `plugins/mirai-codex`:
 
 - installs the Mirai MCP server config
 - adds the Mirai skill instructions
@@ -119,6 +139,7 @@ plugins/mirai-codex
 Primary command:
 
 ```text
+/mirai
 /mirai status
 /mirai activate <license>
 /mirai connect-x

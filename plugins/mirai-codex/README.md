@@ -8,6 +8,19 @@ This plugin provides:
 - `/mirai` command workflow.
 - Mirai skill instructions for safe license activation, X connection, campaign control, and reports.
 
+## Install From GitHub
+
+Users do not run `plugin-creator`. This plugin has already been created with the
+plugin-creator workflow and is published inside the Mirai repo as a Codex
+marketplace entry.
+
+```bash
+codex plugin marketplace add zakyirsyaad/mirai-ai --ref main --sparse .agents --sparse plugins/mirai-codex
+codex plugin add mirai-codex@mirai-ai
+```
+
+Then restart Codex or open a new thread.
+
 ## Requirements
 
 - Node.js 20+

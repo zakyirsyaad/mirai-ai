@@ -13,6 +13,8 @@ import {
 import { siteConfig } from "@/lib/site";
 
 const installCommand = `npm install -g ${siteConfig.packageName}`;
+const codexPluginInstall = `codex plugin marketplace add zakyirsyaad/mirai-ai --ref main --sparse .agents --sparse plugins/mirai-codex
+codex plugin add mirai-codex@mirai-ai`;
 
 const flow = [
   "mirai_activate_license",
@@ -51,12 +53,20 @@ export default function DocsPage() {
             Add Mirai to your MCP client.
           </h1>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">
-            Install the single npm package, paste the generated MCP config into
-            your client, then activate the license delivered after a CROO order.
+            Codex users can install the Mirai plugin for `/mirai` commands.
+            Other MCP clients can install the npm package and paste the generated
+            MCP config.
           </p>
         </div>
-        <div className="mt-8 max-w-3xl">
-          <CodeBlock value={installCommand} />
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div>
+            <div className="mb-3 text-sm font-semibold">Codex plugin</div>
+            <CodeBlock value={codexPluginInstall} />
+          </div>
+          <div>
+            <div className="mb-3 text-sm font-semibold">Universal MCP package</div>
+            <CodeBlock value={installCommand} />
+          </div>
         </div>
       </section>
 
