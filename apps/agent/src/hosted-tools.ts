@@ -38,6 +38,7 @@ import {
 } from "@mirai/x";
 import { campaignQueue } from "./queues.js";
 import { checkEntitlement, type SensitiveAction } from "./entitlements.js";
+import { redactA2ASecrets } from "./a2a/redaction.js";
 
 const env = loadEnv();
 
@@ -170,7 +171,8 @@ export async function hostedCreateCampaign(
   if (access.payload.service !== ServiceType.ContentAgent7d) {
     throw new Error("This license does not include autopost campaigns.");
   }
-  if (!access.campaignId) throw new Error("No campaign exists for this license.");
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
   const campaign = await prisma.campaign.update({
     where: { id: access.campaignId },
     data: {
@@ -203,8 +205,12 @@ export async function hostedSetContentPolicy(
   licenseKey: string,
   policy: ContentPolicyPayload,
 ): Promise<unknown> {
-  const access = await ensureHostedAccess(licenseKey, LicenseScope.CampaignWrite);
-  if (!access.campaignId) throw new Error("No campaign exists for this license.");
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.CampaignWrite,
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
   const saved = await upsertContentPolicy(access.campaignId, policy);
   return {
     ok: true,
@@ -217,11 +223,19 @@ export async function hostedSetVoiceProfile(
   licenseKey: string,
   profile: VoiceProfilePayload,
 ): Promise<unknown> {
-  const access = await ensureHostedAccess(licenseKey, LicenseScope.CampaignWrite);
-  if (!access.campaignId) throw new Error("No campaign exists for this license.");
-  await upsertVoiceProfile(access.campaignId, VoiceProfileSchema.parse(profile), {
-    source: VoiceProfileSource.MANUAL_OVERRIDE,
-  });
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.CampaignWrite,
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
+  await upsertVoiceProfile(
+    access.campaignId,
+    VoiceProfileSchema.parse(profile),
+    {
+      source: VoiceProfileSource.MANUAL_OVERRIDE,
+    },
+  );
   return { ok: true, campaignId: access.campaignId };
 }
 
@@ -229,9 +243,16 @@ export async function hostedAddContentItems(
   licenseKey: string,
   items: string[],
 ): Promise<unknown> {
-  const access = await ensureHostedAccess(licenseKey, LicenseScope.CampaignWrite);
-  if (!access.campaignId) throw new Error("No campaign exists for this license.");
-  const clean = items.map((item) => item.trim()).filter(Boolean).slice(0, 50);
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.CampaignWrite,
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
+  const clean = items
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 50);
   await prisma.contentItem.createMany({
     data: clean.map((rawText) => ({
       campaignId: access.campaignId as string,
@@ -251,16 +272,28 @@ export async function hostedStartAutopost(
   approved: boolean,
 ): Promise<unknown> {
   if (!approved) {
-    throw new Error("Set approved=true to allow Mirai to post automatically until expiry.");
+    throw new Error(
+      "Set approved=true to allow Mirai to post automatically until expiry.",
+    );
   }
-  const access = await ensureHostedAccess(licenseKey, LicenseScope.XPost, "start");
-  if (!access.campaignId) throw new Error("No campaign exists for this license.");
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.XPost,
+    "start",
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
   const campaign = await prisma.campaign.findUniqueOrThrow({
     where: { id: access.campaignId },
-    include: { voiceProfile: true, session: { include: { xConnection: true } } },
+    include: {
+      voiceProfile: true,
+      session: { include: { xConnection: true } },
+    },
   });
-  if (!campaign.voiceProfile) throw new Error("Set a voice profile before starting.");
-  if (!campaign.session.xConnection) throw new Error("Connect X before starting.");
+  if (!campaign.voiceProfile)
+    throw new Error("Set a voice profile before starting.");
+  if (!campaign.session.xConnection)
+    throw new Error("Connect X before starting.");
   await campaignQueue.add(
     "start",
     { action: "start", campaignId: campaign.id },
@@ -277,9 +310,15 @@ export async function hostedStartAutopost(
   };
 }
 
-export async function hostedPauseAutopost(licenseKey: string): Promise<unknown> {
-  const access = await ensureHostedAccess(licenseKey, LicenseScope.CampaignWrite);
-  if (!access.campaignId) throw new Error("No campaign exists for this license.");
+export async function hostedPauseAutopost(
+  licenseKey: string,
+): Promise<unknown> {
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.CampaignWrite,
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
   await prisma.campaign.update({
     where: { id: access.campaignId },
     data: { status: CampaignStatus.PAUSED, enabled: false },
@@ -287,9 +326,16 @@ export async function hostedPauseAutopost(licenseKey: string): Promise<unknown> 
   return { ok: true, campaignId: access.campaignId, status: "PAUSED" };
 }
 
-export async function hostedResumeAutopost(licenseKey: string): Promise<unknown> {
-  const access = await ensureHostedAccess(licenseKey, LicenseScope.XPost, "resume");
-  if (!access.campaignId) throw new Error("No campaign exists for this license.");
+export async function hostedResumeAutopost(
+  licenseKey: string,
+): Promise<unknown> {
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.XPost,
+    "resume",
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
   await prisma.campaign.update({
     where: { id: access.campaignId },
     data: { status: CampaignStatus.ACTIVE, enabled: true },
@@ -344,6 +390,7 @@ export async function hostedGetReport(
     include: {
       session: { include: { xConnection: true } },
       scheduledPosts: { orderBy: { slotIndex: "asc" } },
+      a2aDelegations: { orderBy: { createdAt: "asc" } },
     },
   });
   const posts = campaign.scheduledPosts;
@@ -355,7 +402,8 @@ export async function hostedGetReport(
     windowEnd: campaign.accessExpiresAt.toISOString(),
     summary: {
       planned: posts.length,
-      posted: posts.filter((p) => p.stage === PostStage.RECORDED || p.tweetId).length,
+      posted: posts.filter((p) => p.stage === PostStage.RECORDED || p.tweetId)
+        .length,
       skipped: posts.filter((p) => p.stage === PostStage.SKIPPED).length,
       failed: posts.filter((p) => p.stage === PostStage.FAILED).length,
     },
@@ -365,8 +413,26 @@ export async function hostedGetReport(
       tweetId: p.tweetId,
       tweetUrl: p.tweetUrl,
       text: p.draftText ?? "",
-      status: p.stage === PostStage.SKIPPED ? "SKIPPED" : p.tweetId ? "POSTED" : "FAILED",
+      status:
+        p.stage === PostStage.SKIPPED
+          ? "SKIPPED"
+          : p.tweetId
+            ? "POSTED"
+            : "FAILED",
       metrics: p.metrics ?? undefined,
+    })),
+    a2aDelegations: campaign.a2aDelegations.map((delegation) => ({
+      downstreamAgent: delegation.downstreamAgent,
+      downstreamServiceId: delegation.downstreamServiceId,
+      downstreamNegotiationId: delegation.downstreamNegotiationId,
+      downstreamOrderId: delegation.downstreamOrderId,
+      status: delegation.status,
+      request: delegation.requestJson,
+      response: redactA2ASecrets(delegation.responseJson ?? null),
+      error: delegation.error,
+      startedAt: delegation.startedAt.toISOString(),
+      paidAt: delegation.paidAt?.toISOString() ?? null,
+      completedAt: delegation.completedAt?.toISOString() ?? null,
     })),
   });
 }
@@ -381,11 +447,19 @@ export async function hostedGenerateVoiceIdeas(
     where: { id: access.sessionId },
     include: { xConnection: true },
   });
-  if (!session.xConnection) throw new Error("Connect X before generating ideas.");
+  if (!session.xConnection)
+    throw new Error("Connect X before generating ideas.");
   const accessToken = env.TOKEN_VAULT_KEY
-    ? decryptToken(session.xConnection.encryptedAccessToken, env.TOKEN_VAULT_KEY)
+    ? decryptToken(
+        session.xConnection.encryptedAccessToken,
+        env.TOKEN_VAULT_KEY,
+      )
     : "mock";
-  const tweets = await x.getUserTweets(accessToken, session.xConnection.xUserId, 50);
+  const tweets = await x.getUserTweets(
+    accessToken,
+    session.xConnection.xUserId,
+    50,
+  );
   const voice = await buildVoiceProfileFromQuestionnaire(llm, {
     niche: tweets[0]?.text ?? "builder-led content",
     audience: "X followers",
@@ -414,7 +488,8 @@ async function ensureHostedAccess(
     where: { crooOrderId: payload.orderId },
     include: { session: true, campaign: true, entitlement: true },
   });
-  if (!order?.session) throw new Error("No order/session found for entitlement.");
+  if (!order?.session)
+    throw new Error("No order/session found for entitlement.");
   if (!order.entitlement) {
     await prisma.entitlement.create({
       data: {
@@ -475,7 +550,10 @@ async function upsertXConnection(
       xUserId: data.xUserId,
       xHandle: data.xHandle,
       encryptedAccessToken: encryptToken(data.accessToken, env.TOKEN_VAULT_KEY),
-      encryptedRefreshToken: encryptToken(data.refreshToken, env.TOKEN_VAULT_KEY),
+      encryptedRefreshToken: encryptToken(
+        data.refreshToken,
+        env.TOKEN_VAULT_KEY,
+      ),
       scope: data.scope,
       accessTokenExpiresAt: new Date(data.expiresAt),
       tweetCount: data.tweetCount,
@@ -484,7 +562,10 @@ async function upsertXConnection(
       xUserId: data.xUserId,
       xHandle: data.xHandle,
       encryptedAccessToken: encryptToken(data.accessToken, env.TOKEN_VAULT_KEY),
-      encryptedRefreshToken: encryptToken(data.refreshToken, env.TOKEN_VAULT_KEY),
+      encryptedRefreshToken: encryptToken(
+        data.refreshToken,
+        env.TOKEN_VAULT_KEY,
+      ),
       scope: data.scope,
       accessTokenExpiresAt: new Date(data.expiresAt),
       tweetCount: data.tweetCount,
@@ -571,7 +652,9 @@ function serializeContentPolicy(policy: DbContentPolicy): ContentPolicyPayload {
   });
 }
 
-function summarizePosts(posts: { stage: PostStage; tweetId: string | null }[]): unknown {
+function summarizePosts(
+  posts: { stage: PostStage; tweetId: string | null }[],
+): unknown {
   return {
     planned: posts.length,
     posted: posts.filter((p) => p.tweetId).length,

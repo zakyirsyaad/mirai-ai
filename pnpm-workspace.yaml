@@ -20,3 +20,4 @@ onlyBuiltDependencies:
 # stays cross-assignable between our code and BullMQ's connection option.
 overrides:
   ioredis: "5.10.1"
+  postcss: "^8.5.10"

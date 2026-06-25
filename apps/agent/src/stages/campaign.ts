@@ -6,6 +6,7 @@ import {
 } from "@mirai/shared";
 import { publishEvent, now } from "../publisher.js";
 import { acquireQueue, postJobId, type CampaignJob } from "../queues.js";
+import { redactA2ASecrets } from "../a2a/redaction.js";
 
 /**
  * Campaign-level processor — handles INTAKE→BRIEF→PLAN ("start") and the final
@@ -87,6 +88,7 @@ async function deliverCampaign(campaignId: string): Promise<void> {
       order: true,
       session: { include: { xConnection: true } },
       scheduledPosts: { orderBy: { slotIndex: "asc" } },
+      a2aDelegations: { orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -99,7 +101,8 @@ async function deliverCampaign(campaignId: string): Promise<void> {
     windowEnd: campaign.accessExpiresAt.toISOString(),
     summary: {
       planned: posts.length,
-      posted: posts.filter((p) => p.stage === PostStage.RECORDED || p.tweetId).length,
+      posted: posts.filter((p) => p.stage === PostStage.RECORDED || p.tweetId)
+        .length,
       skipped: posts.filter((p) => p.stage === PostStage.SKIPPED).length,
       failed: posts.filter((p) => p.stage === PostStage.FAILED).length,
     },
@@ -115,7 +118,22 @@ async function deliverCampaign(campaignId: string): Promise<void> {
           : p.tweetId
             ? "POSTED"
             : "FAILED",
-      metrics: (p.metrics as ContentAgentDeliverable["posts"][number]["metrics"]) ?? undefined,
+      metrics:
+        (p.metrics as ContentAgentDeliverable["posts"][number]["metrics"]) ??
+        undefined,
+    })),
+    a2aDelegations: campaign.a2aDelegations.map((delegation) => ({
+      downstreamAgent: delegation.downstreamAgent,
+      downstreamServiceId: delegation.downstreamServiceId,
+      downstreamNegotiationId: delegation.downstreamNegotiationId,
+      downstreamOrderId: delegation.downstreamOrderId,
+      status: delegation.status,
+      request: delegation.requestJson,
+      response: redactA2ASecrets(delegation.responseJson ?? null),
+      error: delegation.error,
+      startedAt: delegation.startedAt.toISOString(),
+      paidAt: delegation.paidAt?.toISOString() ?? null,
+      completedAt: delegation.completedAt?.toISOString() ?? null,
     })),
   };
 

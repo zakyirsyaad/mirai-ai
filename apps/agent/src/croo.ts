@@ -43,7 +43,8 @@ const MIRAI_DOCS_URL = "https://github.com/0xAlvary/mirai-ai#mirai-ai";
 let client: CrooClient | undefined;
 
 export function crooClient(): CrooClient {
-  if (!client) throw new Error("CROO client not initialized — call startCroo().");
+  if (!client)
+    throw new Error("CROO client not initialized — call startCroo().");
   return client;
 }
 
@@ -84,7 +85,10 @@ async function handleOrderPaid(e: OrderPaidEvent): Promise<void> {
     env,
   });
   if (!service) {
-    throw new Error(`Unknown CROO serviceId: ${e.serviceId}`);
+    console.warn(
+      `[croo] ignoring OrderPaid for non-Mirai serviceId ${e.serviceId} order=${e.orderId}`,
+    );
+    return;
   }
   const buyerWallet = e.buyerWallet.toLowerCase();
 
@@ -151,7 +155,7 @@ async function handleOrderPaid(e: OrderPaidEvent): Promise<void> {
           status: CampaignStatus.WAITING_FOR_X,
           accessExpiresAt,
         },
-        });
+      });
       // Enqueue start (will park in WAITING_FOR_X until X is connected).
       await campaignQueue.add("start", {
         action: "start",

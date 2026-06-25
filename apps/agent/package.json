@@ -12,10 +12,18 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch & node --watch --enable-source-maps dist/index.js",
     "start": "node --enable-source-maps dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/croo build && pnpm build && node --test 'dist/**/*.test.js'",
+    "test:unit": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/croo build && pnpm build && node --test 'dist/**/*.unit.test.js'",
+    "test:integration": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/croo build && pnpm build && node --test 'dist/**/*.integration.test.js'",
+    "test:api": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/croo build && pnpm build && node --test 'dist/**/*.api.test.js'",
+    "test:e2e": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/croo build && pnpm build && node --test 'dist/**/*.e2e.test.js'",
+    "test:e2e:real-a2a": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/croo build && pnpm build && node scripts/real-creative-a2a-e2e.mjs",
+    "test:security": "node scripts/security-scan.mjs",
+    "test:performance": "pnpm build && node scripts/perf-a2a-contract.mjs",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {

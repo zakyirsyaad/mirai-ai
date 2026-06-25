@@ -46,10 +46,10 @@ configure MCP manually; the plugin starts `@mirai-agent/mcp` through `npx`.
 
 ## Services
 
-| Service | Access | Result |
-| --- | --- | --- |
-| **Mirai 7-Day Autopost** | 7 days | Connect X, approve once, then run a 14-post hosted X campaign in autonomous or user-supplied mode. Posting stops when the license expires. |
-| **Mirai Voice & Ideas** | 24 hours | Connect X and generate a voice profile plus tailored X content ideas. This service is read-only and cannot post. |
+| Service                  | Access   | Result                                                                                                                                     |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Mirai 7-Day Autopost** | 7 days   | Connect X, approve once, then run a 14-post hosted X campaign in autonomous or user-supplied mode. Posting stops when the license expires. |
+| **Mirai Voice & Ideas**  | 24 hours | Connect X and generate a voice profile plus tailored X content ideas. This service is read-only and cannot post.                           |
 
 Service limits are encoded inside the signed license payload. Autopost licenses
 include posting scopes and a 14-post limit. Voice & Ideas licenses include only
@@ -95,11 +95,11 @@ it as an MCP server manually, but this is not the primary buyer flow.
 The MCP package is the hidden engine. Each client gets a plugin/profile adapter
 that starts the same Mirai runtime through `npx`.
 
-| Client | Adapter | User installs |
-| --- | --- | --- |
-| Codex | `plugins/mirai-codex` + `.agents/plugins/marketplace.json` | Codex plugin marketplace entry |
+| Client          | Adapter                                                    | User installs                   |
+| --------------- | ---------------------------------------------------------- | ------------------------------- |
+| Codex           | `plugins/mirai-codex` + `.agents/plugins/marketplace.json` | Codex plugin marketplace entry  |
 | Claude Code/CLI | `plugins/mirai-claude` + `.claude-plugin/marketplace.json` | Claude plugin marketplace entry |
-| Hermes | `plugin.yaml` + `plugins/mirai-hermes` | Hermes Git plugin profile |
+| Hermes          | `plugin.yaml` + `plugins/mirai-hermes`                     | Hermes Git plugin profile       |
 
 The Codex plugin was generated and validated using Codex's `plugin-creator`
 workflow. End users do not scaffold anything themselves.
@@ -278,10 +278,22 @@ Set service IDs in provider env:
 ```bash
 CROO_SERVICE_CONTENT_AGENT_7D_ID=
 CROO_SERVICE_VOICE_IDEAS_ID=
+CROO_A2A_CREATIVE_SERVICE_ID=a8f1c20d-73f4-4551-856a-32315e18d261
+CROO_A2A_CREATIVE_AGENT_NAME=Universal Workbench AI Agent
 ```
 
 Mirai resolves the purchased service from CROO `serviceId`. Do not require the
 buyer to enter a service id.
+
+`CROO_A2A_CREATIVE_SERVICE_ID` points at the downstream creative agent Mirai
+hires while fulfilling autonomous campaigns. The default is Universal Workbench
+AI Agent service `a8f1c20d-73f4-4551-856a-32315e18d261`, but it can be swapped
+for any CROO agent that accepts a creator-ops work request. Mirai stores the CAP
+trace, redacts private downstream proof from public reports, and folds the
+delivery summary into the grounding note used by COMPOSE. The Mirai CROO agent
+wallet must hold enough USDC to pay that downstream order; otherwise
+`payOrder()` fails and the scheduled post remains blocked at ACQUIRE with a
+persisted `A2ADelegation` error.
 
 Recommended CROO service config:
 
@@ -310,14 +322,70 @@ license-first flow.
 ## CROO SDK Methods Used
 
 - `connectWebSocket()` for the single Provider event stream.
+- `negotiateOrder(req)` for Mirai's real A2A downstream creative workbench request.
 - `acceptNegotiation(id)` for supported Mirai services.
 - `rejectNegotiation(id)` for unknown service IDs.
+- `payOrder(orderId)` for the downstream CAP order Mirai buys.
+- `getDelivery(orderId)` for the downstream creative workbench delivery.
 - `deliverOrder(orderId, req)` for immediate text license delivery.
 - Events: `NegotiationCreated`, `OrderPaid`, `OrderCompleted`.
 
 On `OrderPaid`, Mirai provisions the session, order, entitlement, and campaign
 for Autopost, then delivers the license text to CROO. The final proof-of-work
 report remains available through MCP.
+
+## Real A2A Handoff
+
+Autonomous campaigns include one real downstream CAP order per campaign:
+
+```text
+Mirai Content Agent -> Creative Workbench CROO Agent -> Mirai writer
+```
+
+At ACQUIRE, Mirai sends the buyer's campaign context, voice profile, policy, and
+owned X grounding signals to the configured creative workbench service through
+`negotiateOrder()`. The requirements payload includes `packType:
+"creator-ops"`, `track: "creator-content-ops"`, a natural-language `prompt`,
+and a structured Mirai trace. The prompt asks for campaign angles, one
+recommended post direction, voice-fit notes, draft seeds, and risks to avoid.
+After `OrderCompleted`, Mirai stores the
+downstream delivery as private A2A proof, redacts sensitive fields from public
+report payloads, and folds the delivery summary into the grounding note used by
+COMPOSE. This is deliberately not mocked: missing `CROO_SDK_KEY`, missing
+`CROO_A2A_CREATIVE_SERVICE_ID`, or an unfunded Mirai agent wallet causes ACQUIRE
+to fail/retry with a persisted `A2ADelegation` error.
+
+The final `mirai_get_report` payload includes `a2aDelegations[]` with downstream
+service ID, negotiation ID, order ID, status, request, response, and timestamps
+so judges can trace the A2A relationship from the submitted demo.
+
+### Real Paid A2A Proof
+
+Manual paid A2A E2E was executed on 2026-06-25 with Mirai acting as requester
+and Universal Workbench AI Agent acting as the downstream provider.
+
+| Field | Value |
+| --- | --- |
+| Downstream agent | Universal Workbench AI Agent |
+| Downstream agent ID | `0ad53b08-34bf-47a3-870f-5be9eaca0262` |
+| Downstream service ID | `a8f1c20d-73f4-4551-856a-32315e18d261` |
+| Verified price | `100` micro-USDC |
+| Negotiation ID | `f975142f-90d5-4cc2-8cfe-fbca6984681f` |
+| Downstream order ID | `1483402b-8080-4664-b927-18f1135b4a60` |
+| Payment tx | `0xfdd0eda4ecd0f1ec9f6bd8c9904d7c3c6cb71a9b0a2315281e1faf2636918e5d` |
+| Delivery tx | `0x06b4876ec89f49c1d53ef1717b38f97d788251f2477c7a4af2e20177bedaa6b2` |
+| Delivery ID | `1403a778-483a-474b-a9c5-0e71c995903a` |
+| Final order status | `completed` |
+| Delivery status | `accepted` |
+
+Reproduce with:
+
+```bash
+pnpm test:e2e:real-a2a
+```
+
+The command verifies the public downstream service price before payment and
+refuses to pay if it exceeds `MAX_APPROVED_MICRO_USDC` (`10000` by default).
 
 ## Production Notes
 

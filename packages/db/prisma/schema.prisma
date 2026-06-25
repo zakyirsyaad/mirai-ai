@@ -39,8 +39,8 @@ enum SessionStatus {
 
 /// Encrypted X OAuth tokens (AES-256-GCM via @mirai/shared vault).
 model XConnection {
-  id                    String   @id @default(cuid())
-  sessionId             String   @unique
+  id                    String        @id @default(cuid())
+  sessionId             String        @unique
   session               AccessSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   xUserId               String
   xHandle               String
@@ -48,9 +48,9 @@ model XConnection {
   encryptedRefreshToken String
   scope                 String
   accessTokenExpiresAt  DateTime
-  tweetCount            Int      @default(0) // used to detect cold-start (empty account)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  tweetCount            Int           @default(0) // used to detect cold-start (empty account)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@index([xUserId])
 }
@@ -59,21 +59,21 @@ model XConnection {
 
 /// Derived/edited voice profile applied to all generated & rewritten posts.
 model VoiceProfile {
-  id         String            @id @default(cuid())
-  campaignId String            @unique
-  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  source     VoiceProfileSource
-  tone       String
-  topics     String[]
-  styleNotes String[]
-  doNots     String[]
-  sampleVoice String           @default("")
+  id          String             @id @default(cuid())
+  campaignId  String             @unique
+  campaign    Campaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  source      VoiceProfileSource
+  tone        String
+  topics      String[]
+  styleNotes  String[]
+  doNots      String[]
+  sampleVoice String             @default("")
   // Cold-start questionnaire answers (when source = QUESTIONNAIRE).
-  niche      String?
-  audience   String?
-  goal       String?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  niche       String?
+  audience    String?
+  goal        String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 }
 
 enum VoiceProfileSource {
@@ -84,13 +84,13 @@ enum VoiceProfileSource {
 
 /// User-supplied raw content pool (USER_SUPPLIED mode).
 model ContentItem {
-  id         String            @id @default(cuid())
-  campaignId String
-  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  rawText    String
-  status     ContentItemStatus @default(PENDING)
+  id           String            @id @default(cuid())
+  campaignId   String
+  campaign     Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  rawText      String
+  status       ContentItemStatus @default(PENDING)
   usedByPostId String?
-  createdAt  DateTime          @default(now())
+  createdAt    DateTime          @default(now())
 
   @@index([campaignId, status])
 }
@@ -104,19 +104,19 @@ enum ContentItemStatus {
 
 /// A paid CROO order. One order = one access pass = one campaign.
 model Order {
-  id            String      @id @default(cuid())
-  crooOrderId   String      @unique
+  id            String         @id @default(cuid())
+  crooOrderId   String         @unique
   negotiationId String?
   buyerWallet   String
   service       String // ServiceType from @mirai/shared
-  status        OrderStatus @default(PAID)
+  status        OrderStatus    @default(PAID)
   sessionId     String?
   session       AccessSession? @relation(fields: [sessionId], references: [id])
   campaign      Campaign?
   entitlement   Entitlement?
   deliveredAt   DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([buyerWallet])
 }
@@ -163,7 +163,7 @@ model Campaign {
   orderId         String         @unique
   order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   sessionId       String
-  session         AccessSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session         AccessSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   contentMode     ContentMode    @default(AUTONOMOUS)
   enabled         Boolean        @default(true)
   status          CampaignStatus @default(WAITING_FOR_X)
@@ -175,6 +175,7 @@ model Campaign {
   contentPolicy  ContentPolicy?
   contentItems   ContentItem[]
   scheduledPosts ScheduledPost[]
+  a2aDelegations A2ADelegation[]
 
   @@index([status])
 }
@@ -211,27 +212,28 @@ model ContentPolicy {
 
 /// One scheduled post moving through ACQUIRE → COMPOSE → REVIEW → POST → RECORD.
 model ScheduledPost {
-  id           String     @id @default(cuid())
-  campaignId   String
-  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  slotIndex    Int
-  scheduledFor DateTime
-  angle        String? // chosen angle / brief for this slot
-  stage        PostStage  @default(PLANNED)
+  id             String          @id @default(cuid())
+  campaignId     String
+  campaign       Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  slotIndex      Int
+  scheduledFor   DateTime
+  angle          String? // chosen angle / brief for this slot
+  stage          PostStage       @default(PLANNED)
   // ACQUIRE output (raw material, persisted so retries don't re-fetch).
-  rawMaterial  String?
+  rawMaterial    String?
   // COMPOSE output.
-  draftText    String?
+  draftText      String?
   // POST output.
-  tweetId      String?
-  tweetUrl     String?
-  postedAt     DateTime?
+  tweetId        String?
+  tweetUrl       String?
+  postedAt       DateTime?
   // RECORD output.
-  metrics      Json?
-  failureReason String?
-  attempts     Int        @default(0)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  metrics        Json?
+  failureReason  String?
+  attempts       Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  a2aDelegations A2ADelegation[]
 
   @@unique([campaignId, slotIndex])
   @@index([campaignId, stage])
@@ -245,5 +247,42 @@ enum PostStage {
   POSTED
   RECORDED
   SKIPPED
+  FAILED
+}
+
+// ─────────────────────────── A2A / downstream CAP orders ───────────────────────────
+
+/// A real downstream CROO order Mirai creates as a requester while fulfilling a campaign.
+model A2ADelegation {
+  id                      String              @id @default(cuid())
+  campaignId              String
+  campaign                Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  scheduledPostId         String?
+  scheduledPost           ScheduledPost?      @relation(fields: [scheduledPostId], references: [id], onDelete: SetNull)
+  upstreamCrooOrderId     String
+  downstreamAgent         String
+  downstreamServiceId     String
+  downstreamNegotiationId String?
+  downstreamOrderId       String?             @unique
+  status                  A2ADelegationStatus @default(NEGOTIATING)
+  requestJson             Json
+  responseJson            Json?
+  error                   String?
+  startedAt               DateTime            @default(now())
+  paidAt                  DateTime?
+  completedAt             DateTime?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  @@index([campaignId, status])
+  @@index([scheduledPostId])
+  @@index([downstreamServiceId])
+}
+
+enum A2ADelegationStatus {
+  NEGOTIATING
+  ORDER_CREATED
+  PAID
+  COMPLETED
   FAILED
 }

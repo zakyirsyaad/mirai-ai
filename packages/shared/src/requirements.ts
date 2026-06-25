@@ -86,6 +86,27 @@ export const DeliveredPostSchema = z.object({
 });
 export type DeliveredPost = z.infer<typeof DeliveredPostSchema>;
 
+export const A2ADelegationProofSchema = z.object({
+  downstreamAgent: z.string().min(1),
+  downstreamServiceId: z.string().min(1),
+  downstreamNegotiationId: z.string().nullable(),
+  downstreamOrderId: z.string().nullable(),
+  status: z.enum([
+    "NEGOTIATING",
+    "ORDER_CREATED",
+    "PAID",
+    "COMPLETED",
+    "FAILED",
+  ]),
+  request: z.unknown(),
+  response: z.unknown().nullable(),
+  error: z.string().nullable(),
+  startedAt: z.string().datetime(),
+  paidAt: z.string().datetime().nullable(),
+  completedAt: z.string().datetime().nullable(),
+});
+export type A2ADelegationProof = z.infer<typeof A2ADelegationProofSchema>;
+
 /** Service #1 final report — exposed through MCP after the campaign window. */
 export const ContentAgentDeliverableSchema = z.object({
   service: z.literal(ServiceType.ContentAgent7d),
@@ -100,6 +121,7 @@ export const ContentAgentDeliverableSchema = z.object({
     failed: z.number().int().nonnegative(),
   }),
   posts: z.array(DeliveredPostSchema),
+  a2aDelegations: z.array(A2ADelegationProofSchema).default([]),
 });
 export type ContentAgentDeliverable = z.infer<
   typeof ContentAgentDeliverableSchema

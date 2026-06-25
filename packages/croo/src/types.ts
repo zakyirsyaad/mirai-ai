@@ -82,6 +82,34 @@ export interface SchemaDeliverable {
 
 export type Deliverable = TextDeliverable | SchemaDeliverable;
 
+export interface DownstreamNegotiation {
+  negotiationId: string;
+  serviceId: string;
+  status: string;
+}
+
+export interface DownstreamOrder {
+  orderId: string;
+  negotiationId: string;
+  serviceId: string;
+  status: string;
+  payTxHash?: string;
+  deliverTxHash?: string;
+}
+
+export interface DownstreamPayment {
+  order: DownstreamOrder;
+  txHash: string;
+}
+
+export interface DownstreamDelivery {
+  orderId: string;
+  deliverableType: string;
+  deliverableSchema: string;
+  deliverableText: string;
+  status: string;
+}
+
 /** Handlers the agent registers for each event kind. */
 export interface CrooEventHandlers {
   onNegotiationCreated?: (e: NegotiationCreatedEvent) => Promise<void> | void;

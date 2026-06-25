@@ -5,10 +5,14 @@ import {
   groundFromNicheAndTrends,
   type GroundingSignals,
 } from "@mirai/content";
+import { loadEnv } from "@mirai/shared";
 import { xClient } from "../clients.js";
 import { getXAccess } from "../tokens.js";
 import { publishEvent, now } from "../publisher.js";
 import { composeQueue, postJobId, type PostJob } from "../queues.js";
+import { acquireCreativeWorkbenchSignals } from "../a2a/creative-workbench.js";
+
+const env = loadEnv();
 
 /**
  * ACQUIRE — gather the raw material for one post.
@@ -31,7 +35,7 @@ export async function processAcquire(job: PostJob): Promise<void> {
 
   const campaign = await prisma.campaign.findUniqueOrThrow({
     where: { id: campaignId },
-    include: { voiceProfile: true, contentPolicy: true },
+    include: { order: true, voiceProfile: true, contentPolicy: true },
   });
 
   let rawMaterial: string;
@@ -67,11 +71,39 @@ export async function processAcquire(job: PostJob): Promise<void> {
     const policy = campaign.contentPolicy
       ? ContentPolicySchema.parse(campaign.contentPolicy)
       : null;
-    const signals = await acquireAutonomousSignals(
+    const topics = [
+      ...(campaign.voiceProfile?.topics ?? []),
+      ...(policy?.allowedTopics ?? []),
+    ];
+    const baseSignals = await acquireAutonomousSignals(
       campaignId,
-      [...(campaign.voiceProfile?.topics ?? []), ...(policy?.allowedTopics ?? [])],
+      topics,
       campaign.voiceProfile?.niche ?? null,
     );
+    const signals = shouldUseCreativeWorkbenchDelegation({
+      topics,
+      niche: campaign.voiceProfile?.niche ?? null,
+      policy,
+      baseSignals,
+    })
+      ? await acquireCreativeWorkbenchSignals({
+          campaignId,
+          scheduledPostId,
+          upstreamCrooOrderId: campaign.order.crooOrderId,
+          topics,
+          niche: campaign.voiceProfile?.niche ?? null,
+          baseSignals,
+          voiceProfile: campaign.voiceProfile
+            ? {
+                tone: campaign.voiceProfile.tone,
+                topics: campaign.voiceProfile.topics,
+                styleNotes: campaign.voiceProfile.styleNotes,
+                doNots: campaign.voiceProfile.doNots,
+              }
+            : null,
+          contentPolicy: policy,
+        })
+      : baseSignals;
     rawMaterial = JSON.stringify({ kind: "autonomous", signals });
   }
 
@@ -90,6 +122,44 @@ export async function processAcquire(job: PostJob): Promise<void> {
     status: "completed",
     at: now(),
   });
+}
+
+function shouldUseCreativeWorkbenchDelegation(args: {
+  topics: string[];
+  niche: string | null;
+  policy: ReturnType<typeof ContentPolicySchema.parse> | null;
+  baseSignals: GroundingSignals;
+}): boolean {
+  if (!env.CROO_SDK_KEY) return false;
+  const haystack = [
+    args.niche,
+    ...args.topics,
+    ...(args.policy?.allowedTopics ?? []),
+    ...(args.policy?.toneRules ?? []),
+    ...(args.policy?.formatRules ?? []),
+    ...args.baseSignals.themes,
+    ...args.baseSignals.trends,
+    args.baseSignals.note,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return [
+    "content",
+    "creator",
+    "kol",
+    "social",
+    "twitter",
+    "x ",
+    "post",
+    "campaign",
+    "copy",
+    "audience",
+    "brand",
+    "voice",
+    "ai agent",
+  ].some((keyword) => haystack.includes(keyword));
 }
 
 async function acquireAutonomousSignals(

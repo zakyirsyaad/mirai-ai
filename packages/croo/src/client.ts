@@ -2,6 +2,10 @@ import type { Env } from "@mirai/shared";
 import {
   CrooEventType,
   DeliverableType,
+  type DownstreamDelivery,
+  type DownstreamNegotiation,
+  type DownstreamOrder,
+  type DownstreamPayment,
   type CrooEventHandlers,
   type Deliverable,
   type NegotiationCreatedEvent,
@@ -41,6 +45,35 @@ interface RawOrder {
   requesterWalletAddress: string;
   slaDeadline: string;
   status: string;
+  payTxHash?: string;
+  deliverTxHash?: string;
+}
+
+interface RawDelivery {
+  orderId: string;
+  deliverableType: string;
+  deliverableSchema: string;
+  deliverableText: string;
+  status: string;
+}
+
+interface RawPayOrderResult {
+  order: RawOrder;
+  txHash: string;
+}
+
+interface RawNegotiateOrderRequest {
+  serviceId: string;
+  requirements?: string;
+  metadata?: string;
+}
+
+interface RawListOptions {
+  status?: string;
+  page?: number;
+  pageSize?: number;
+  role?: string;
+  agentId?: string;
 }
 
 interface RawEvent {
@@ -63,6 +96,10 @@ interface RawAgentClient {
   connectWebSocket(): Promise<RawEventStream>;
   getNegotiation(negotiationId: string): Promise<RawNegotiation>;
   getOrder(orderId: string): Promise<RawOrder>;
+  listOrders(opts?: RawListOptions): Promise<RawOrder[]>;
+  negotiateOrder(req: RawNegotiateOrderRequest): Promise<RawNegotiation>;
+  payOrder(orderId: string): Promise<RawPayOrderResult>;
+  getDelivery(orderId: string): Promise<RawDelivery>;
   acceptNegotiation(negotiationId: string): Promise<unknown>;
   rejectNegotiation(negotiationId: string, reason: string): Promise<unknown>;
   deliverOrder(orderId: string, req: RawDeliverRequest): Promise<unknown>;
@@ -131,9 +168,8 @@ export class CrooClient {
   async connect(): Promise<void> {
     const raw = await this.createRaw();
     this.raw = raw;
-    const stream = await withRedactedCrooKey(
-      this.opts.env.CROO_SDK_KEY,
-      () => raw.connectWebSocket(),
+    const stream = await withRedactedCrooKey(this.opts.env.CROO_SDK_KEY, () =>
+      raw.connectWebSocket(),
     );
     this.stream = stream;
 
@@ -146,6 +182,11 @@ export class CrooClient {
     stream.on(WireEvent.OrderCompleted, (e) => {
       void this.dispatchOrderCompleted(e);
     });
+  }
+
+  /** Requester-only flows can use HTTP methods without owning a CROO WebSocket. */
+  async connectHttpOnly(): Promise<void> {
+    this.raw = await this.createRaw();
   }
 
   // ─────────── event enrichment: WS carries IDs only ───────────
@@ -226,6 +267,63 @@ export class CrooClient {
     await this.requireRaw().deliverOrder(orderId, req);
   }
 
+  // ─────────── requester actions for real A2A downstream orders ───────────
+
+  async negotiateOrder(args: {
+    serviceId: string;
+    requirements: unknown;
+    metadata?: unknown;
+  }): Promise<DownstreamNegotiation> {
+    const negotiation = await this.requireRaw().negotiateOrder({
+      serviceId: args.serviceId,
+      requirements: JSON.stringify(args.requirements),
+      metadata:
+        args.metadata === undefined ? undefined : JSON.stringify(args.metadata),
+    });
+    return normalizeNegotiation(negotiation);
+  }
+
+  async findRequesterOrderByNegotiation(
+    negotiationId: string,
+  ): Promise<DownstreamOrder | null> {
+    for (let page = 1; page <= 5; page += 1) {
+      const orders = await this.requireRaw().listOrders({
+        role: "buyer",
+        page,
+        pageSize: 50,
+      });
+      const order = orders.find((candidate) => {
+        return candidate.negotiationId === negotiationId;
+      });
+      if (order) return normalizeOrder(order);
+      if (orders.length < 50) return null;
+    }
+    return null;
+  }
+
+  async getOrder(orderId: string): Promise<DownstreamOrder> {
+    return normalizeOrder(await this.requireRaw().getOrder(orderId));
+  }
+
+  async payOrder(orderId: string): Promise<DownstreamPayment> {
+    const result = await this.requireRaw().payOrder(orderId);
+    return {
+      order: normalizeOrder(result.order),
+      txHash: result.txHash,
+    };
+  }
+
+  async getDelivery(orderId: string): Promise<DownstreamDelivery> {
+    const delivery = await this.requireRaw().getDelivery(orderId);
+    return {
+      orderId: delivery.orderId,
+      deliverableType: delivery.deliverableType,
+      deliverableSchema: delivery.deliverableSchema,
+      deliverableText: delivery.deliverableText,
+      status: delivery.status,
+    };
+  }
+
   async disconnect(): Promise<void> {
     this.stream?.close();
     this.stream = undefined;
@@ -252,7 +350,8 @@ async function withRedactedCrooKey<T>(
     error: console.error,
     debug: console.debug,
   };
-  const redactArgs = (args: unknown[]) => args.map((arg) => redactValue(arg, key));
+  const redactArgs = (args: unknown[]) =>
+    args.map((arg) => redactValue(arg, key));
   const wrap =
     (method: (...args: unknown[]) => void) =>
     (...args: unknown[]) =>
@@ -305,4 +404,23 @@ function parseRequirements(raw: unknown): unknown {
     // will reject it and trigger a graceful negotiation rejection.
     return raw;
   }
+}
+
+function normalizeNegotiation(raw: RawNegotiation): DownstreamNegotiation {
+  return {
+    negotiationId: raw.negotiationId,
+    serviceId: raw.serviceId,
+    status: raw.status,
+  };
+}
+
+function normalizeOrder(raw: RawOrder): DownstreamOrder {
+  return {
+    orderId: raw.orderId,
+    negotiationId: raw.negotiationId,
+    serviceId: raw.serviceId,
+    status: raw.status,
+    payTxHash: raw.payTxHash,
+    deliverTxHash: raw.deliverTxHash,
+  };
 }

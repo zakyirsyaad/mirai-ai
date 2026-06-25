@@ -74,6 +74,8 @@ const EnvSchema = z.object({
   CROO_SDK_KEY: optionalStr(),
   CROO_SERVICE_CONTENT_AGENT_7D_ID: optionalStr(),
   CROO_SERVICE_VOICE_IDEAS_ID: optionalStr(),
+  CROO_A2A_CREATIVE_SERVICE_ID: optionalStr(),
+  CROO_A2A_CREATIVE_AGENT_NAME: optionalStr(),
 
   // X (Twitter)
   X_MODE: z.enum(["mock", "real"]).default("mock"),
@@ -106,11 +108,10 @@ const EnvSchema = z.object({
   MIRAI_RUNTIME_MODE: z.enum(["local", "hosted"]).default("hosted"),
   MIRAI_API_URL: z.string().url().default(DEFAULT_MIRAI_API_URL),
   MIRAI_LICENSE_PRIVATE_KEY: optionalStr(),
-  MIRAI_LICENSE_PUBLIC_KEY: optionalStr().default(DEFAULT_MIRAI_LICENSE_PUBLIC_KEY),
-  MIRAI_ENTITLEMENT_API_URL: z
-    .string()
-    .url()
-    .default("http://localhost:8787"),
+  MIRAI_LICENSE_PUBLIC_KEY: optionalStr().default(
+    DEFAULT_MIRAI_LICENSE_PUBLIC_KEY,
+  ),
+  MIRAI_ENTITLEMENT_API_URL: z.string().url().default("http://localhost:8787"),
   MIRAI_ENTITLEMENT_PORT: z.coerce.number().int().positive().default(8787),
 });
 
