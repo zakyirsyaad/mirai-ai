@@ -24,6 +24,12 @@ import {
   summarizeLicenseForLogs,
 } from "./entitlements.js";
 import { resolveCrooService } from "./croo-service.js";
+import {
+  formatLicenseDeliveryText,
+  MIRAI_DOCS_URL,
+  MIRAI_NEXT_STEPS,
+  MIRAI_PACKAGE_NAME,
+} from "./croo-delivery.js";
 
 /**
  * CROO integration for the agent — the SINGLE owner of the Provider WebSocket
@@ -37,8 +43,6 @@ import { resolveCrooService } from "./croo-service.js";
  */
 
 const env = loadEnv();
-const MIRAI_PACKAGE_NAME = "@mirai/mcp";
-const MIRAI_DOCS_URL = "https://github.com/0xAlvary/mirai-ai#mirai-ai";
 
 let client: CrooClient | undefined;
 
@@ -210,45 +214,15 @@ async function deliverLicenseToCroo(args: {
     expiresAt: args.expiresAt.toISOString(),
     installCommand: `npm install -g ${MIRAI_PACKAGE_NAME}`,
     docsUrl: MIRAI_DOCS_URL,
-    nextSteps:
-      "Install the Mirai plugin/profile for Codex, Claude Code/CLI, or Hermes, activate this license with mirai_activate_license, then connect X through hosted OAuth.",
+    nextSteps: MIRAI_NEXT_STEPS,
   });
 
   await crooClient().deliverOrder(args.crooOrderId, {
     type: DeliverableType.Text,
-    text: formatLicenseDeliveryText(deliverable),
+    text: formatLicenseDeliveryText(deliverable, env.MIRAI_API_URL),
   });
   await prisma.order.update({
     where: { id: args.orderDbId },
     data: { status: OrderStatus.DELIVERED, deliveredAt: new Date() },
   });
-}
-
-function formatLicenseDeliveryText(deliverable: {
-  service: ServiceType;
-  orderId: string;
-  licenseKey: string;
-  expiresAt: string;
-  installCommand: string;
-  docsUrl: string;
-  nextSteps: string;
-}): string {
-  return [
-    "Mirai AI license is ready.",
-    "",
-    `Service: ${deliverable.service}`,
-    `Order ID: ${deliverable.orderId}`,
-    `Expires at: ${deliverable.expiresAt}`,
-    "",
-    "License key:",
-    deliverable.licenseKey,
-    "",
-    "Install package:",
-    deliverable.installCommand,
-    "",
-    "Next steps:",
-    deliverable.nextSteps,
-    "",
-    `Docs: ${deliverable.docsUrl}`,
-  ].join("\n");
 }
