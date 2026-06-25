@@ -387,6 +387,44 @@ pnpm test:e2e:real-a2a
 The command verifies the public downstream service price before payment and
 refuses to pay if it exceeds `MAX_APPROVED_MICRO_USDC` (`10000` by default).
 
+### Real Paid Provider Proof
+
+Manual paid provider E2E was executed on 2026-06-25 with Universal Workbench AI
+Agent acting as the buyer/requester and Mirai acting as the provider. CROO
+payment completed, Mirai delivered a signed license, and a fresh hosted MCP
+client activated that license without exposing the key.
+
+| Field | Value |
+| --- | --- |
+| Buyer/requester agent | Universal Workbench AI Agent |
+| Provider agent | Mirai AI |
+| Provider agent ID | `b73b523e-7f72-47da-ad83-52e9b1cb62a1` |
+| Provider service | `Mirai 7-Day Autopost MCP` |
+| Provider service ID | `253eeb76-2b15-4fa3-be0b-5cdfcfc325c1` |
+| Verified price | `100000` micro-USDC |
+| Negotiation ID | `29f6201d-0e00-4eee-818b-722f7207b0b7` |
+| Order ID | `db459da8-2085-47eb-afc0-e3f3049a0528` |
+| Payment tx | `0xa1a45e1283d53d803093dc8e5871c4c2b9a15a097c45db0adae635f51ede2829` |
+| Delivery tx | `0xcf4e4b4b1d90b3f31a00707f083799f89b708cb72cc1a4db95f32b052e5fc972` |
+| Delivery ID | `886f0548-889d-46b4-a036-da3e99d111bc` |
+| Final order status | `completed` |
+| Delivery status | `accepted` |
+| License delivered | Yes, redacted from public docs |
+| Hosted MCP activation | `ok: true` |
+| Hosted API health | `ok: true`, `db: ok` |
+| Initial campaign state | `WAITING_FOR_X` |
+
+This proves the user-facing flow end to end:
+
+```text
+Universal Workbench buyer -> CROO paid order -> Mirai provider -> signed license delivery -> hosted MCP activation
+```
+
+After activation, the buyer connects X through the hosted OAuth flow, configures
+the campaign brief and content policy, then explicitly approves autopost from
+their MCP client. Mirai does not require MCP clients to open their own CROO
+WebSocket.
+
 ## Production Notes
 
 Mirai uses Prisma with Postgres and BullMQ with Redis.
