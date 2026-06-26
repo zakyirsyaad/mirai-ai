@@ -35,6 +35,86 @@ const contentRevisionCommands = `/mirai content list
 /mirai content edit <id> <revised text>
 /mirai content delete <id>`;
 
+const capabilityGroups = [
+  {
+    title: "License and entitlement",
+    items: [
+      "Activate a signed CROO-delivered Mirai license.",
+      "Check service, scopes, expiry, and posting limits before sensitive actions.",
+      "Run hosted entitlement checks for start, resume, post, report, and delivery.",
+    ],
+  },
+  {
+    title: "X account connection",
+    items: [
+      "Connect the buyer's own X account through hosted OAuth.",
+      "Encrypt X OAuth tokens at rest inside the hosted runtime.",
+      "Use real X posting in production and mock X only for local smoke tests.",
+    ],
+  },
+  {
+    title: "Autonomous campaigns",
+    items: [
+      "Create a 7-day, 14-post campaign from a short campaign brief.",
+      "Plan scheduled post slots and stop automatically at license expiry.",
+      "Pause, resume, inspect status, and retrieve campaign proof from the plugin.",
+    ],
+  },
+  {
+    title: "Content intelligence",
+    items: [
+      "Extract or accept a voice profile for consistent tone.",
+      "Ground drafts with owned X reads, trends, and campaign history.",
+      "Generate five OpenModel draft variants and pick a winner through draft tournament ranking.",
+    ],
+  },
+  {
+    title: "Policy and safety",
+    items: [
+      "Restrict allowed topics, blocked topics, blocked phrases, language, and tone rules.",
+      "Reject URLs, near-duplicates, unsafe phrases, and approval-only subjects before posting.",
+      "Keep user-supplied queue edits locked after a slot claims the item.",
+    ],
+  },
+  {
+    title: "Proof and reports",
+    items: [
+      "Record tweet URLs, timestamps, metrics, draft tournament metadata, and learning summaries.",
+      "Deliver CAP/CROO proof with upstream order data and downstream A2A summaries.",
+      "Expose reports through `mirai_get_report` and hosted API endpoints.",
+    ],
+  },
+];
+
+const commandGroups = [
+  ["/mirai status", "Check hosted health, license state, X connection, and campaign state."],
+  ["/mirai setup <license>", "Run the guided first-time setup flow."],
+  ["/mirai activate <license>", "Store and verify the signed CROO license."],
+  ["/mirai connect-x", "Start hosted X OAuth for the buyer account."],
+  ["/mirai create <brief>", "Create an autonomous or user-supplied campaign."],
+  ["/mirai policy", "Set content restrictions before autopost approval."],
+  ["/mirai start", "Start autopost after explicit approval."],
+  ["/mirai pause", "Pause scheduled posting without deleting the campaign."],
+  ["/mirai resume", "Resume an active, unexpired campaign."],
+  ["/mirai report", "Fetch proof-of-work, post URLs, metrics, and CAP/A2A evidence."],
+  ["/mirai ideas", "Generate read-only voice and content ideas without posting."],
+];
+
+const hostedApiSurfaces = [
+  ["GET /health", "Hosted API health and database connectivity."],
+  ["POST /mcp/activate", "License activation and hosted entitlement bootstrap."],
+  ["POST /oauth/x/start", "Hosted X OAuth start."],
+  ["POST /mcp/campaign", "Create or inspect campaign state."],
+  ["GET /mcp/content", "List queued user-supplied content."],
+  ["PATCH /mcp/content/:id", "Revise pending queued content."],
+  ["DELETE /mcp/content/:id", "Remove pending queued content."],
+  ["POST /mcp/start", "Start autopost after approval."],
+  ["POST /mcp/pause", "Pause autopost."],
+  ["POST /mcp/resume", "Resume autopost."],
+  ["POST /mcp/report", "Retrieve campaign proof and metrics."],
+  ["POST /entitlements/check", "Validate hosted action authorization."],
+];
+
 export default function DocsPage() {
   return (
     <main className="min-h-screen">
@@ -91,6 +171,59 @@ export default function DocsPage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
+        <div className="max-w-3xl">
+          <Badge variant="outline">Capabilities</Badge>
+          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
+            What Mirai can do.
+          </h2>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            Mirai is a hosted CROO Provider for licensed X content work. The
+            plugin gives buyers a local command surface while the VPS runtime
+            handles OAuth, scheduling, content generation, posting, and proof.
+          </p>
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {capabilityGroups.map((group) => (
+            <div key={group.title} className="rounded-lg border border-border bg-card p-5">
+              <h3 className="text-lg font-semibold">{group.title}</h3>
+              <ul className="mt-4 grid gap-3 text-sm leading-6 text-muted-foreground">
+                {group.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-border bg-card/70">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <Badge variant="secondary">Command surface</Badge>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
+              Plugin commands map to hosted tools.
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+              Buyers can operate Mirai from Codex, Claude Code/CLI, or Hermes.
+              The same hosted API enforces licenses, expiry, X connection, and
+              campaign state behind each command.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            {commandGroups.map(([command, description]) => (
+              <div
+                key={command}
+                className="grid gap-2 rounded-md border border-border bg-background p-4 text-sm sm:grid-cols-[minmax(180px,0.55fr)_1fr]"
+              >
+                <span className="font-mono text-foreground">{command}</span>
+                <span className="leading-6 text-muted-foreground">{description}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="border-y border-border bg-card/70">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
@@ -128,6 +261,31 @@ export default function DocsPage() {
               approval-only subjects before any draft can be posted.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <Badge variant="outline">Hosted API</Badge>
+          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
+            Advanced clients can call the hosted API through the MCP runtime.
+          </h2>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            Normal buyers use plugin commands, but the hosted API is intentionally
+            narrow and auditable. License-protected endpoints require a Bearer
+            Mirai license and never expose private provider keys.
+          </p>
+        </div>
+        <div className="grid gap-2">
+          {hostedApiSurfaces.map(([endpoint, description]) => (
+            <div
+              key={endpoint}
+              className="grid gap-2 rounded-md border border-border bg-card p-4 text-sm sm:grid-cols-[minmax(190px,0.6fr)_1fr]"
+            >
+              <span className="font-mono text-foreground">{endpoint}</span>
+              <span className="leading-6 text-muted-foreground">{description}</span>
+            </div>
+          ))}
         </div>
       </section>
 
