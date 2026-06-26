@@ -166,6 +166,12 @@ are `allowedTopics`, `blockedTopics`, `blockedPhrases`, `language`,
 `toneRules`, `formatRules`, and `requireApprovalFor`. Drafts that violate hard
 policy checks are skipped before they reach X.
 
+User-supplied content has a revision queue. Buyers can run `/mirai content list`
+to inspect queued items, `/mirai content edit <id> <revised text>` to revise a
+pending item, and `/mirai content delete <id>` to remove a pending item before
+Mirai uses it. Once an item is claimed by the posting pipeline, it is locked so
+the proof-of-work report stays consistent.
+
 ## Architecture
 
 ```text
