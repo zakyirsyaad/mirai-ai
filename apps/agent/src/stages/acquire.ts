@@ -10,7 +10,7 @@ import { xClient } from "../clients.js";
 import { getXAccess } from "../tokens.js";
 import { publishEvent, now } from "../publisher.js";
 import { composeQueue, postJobId, type PostJob } from "../queues.js";
-import { acquireCreativeWorkbenchSignals } from "../a2a/creative-workbench.js";
+import { orchestrateUniversalWorkbench } from "../a2a/workbench-orchestrator.js";
 
 const env = loadEnv();
 
@@ -80,13 +80,16 @@ export async function processAcquire(job: PostJob): Promise<void> {
       topics,
       campaign.voiceProfile?.niche ?? null,
     );
-    const signals = shouldUseCreativeWorkbenchDelegation({
-      topics,
-      niche: campaign.voiceProfile?.niche ?? null,
-      policy,
-      baseSignals,
-    })
-      ? await acquireCreativeWorkbenchSignals({
+    let signals = baseSignals;
+    if (
+      shouldUseCreativeWorkbenchDelegation({
+        topics,
+        niche: campaign.voiceProfile?.niche ?? null,
+        policy,
+        baseSignals,
+      })
+    ) {
+      const orchestration = await orchestrateUniversalWorkbench({
           campaignId,
           scheduledPostId,
           upstreamCrooOrderId: campaign.order.crooOrderId,
@@ -102,8 +105,31 @@ export async function processAcquire(job: PostJob): Promise<void> {
               }
             : null,
           contentPolicy: policy,
-        })
-      : baseSignals;
+      });
+      if (orchestration.safety.verdict === "BLOCK") {
+        const message =
+          orchestration.safety.reason ??
+          "Universal Workbench safety review blocked this post.";
+        await prisma.scheduledPost.update({
+          where: { id: scheduledPostId },
+          data: {
+            stage: PostStage.SKIPPED,
+            failureReason: message,
+          },
+        });
+        await publishEvent({
+          type: "progress",
+          campaignId,
+          scheduledPostId,
+          stage: Stage.Acquire,
+          status: "skipped",
+          message,
+          at: now(),
+        });
+        return;
+      }
+      signals = orchestration.signals;
+    }
     rawMaterial = JSON.stringify({ kind: "autonomous", signals });
   }
 

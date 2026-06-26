@@ -213,7 +213,10 @@ function unwrapDeliveryText(value: unknown): unknown {
   if (value && typeof value === "object" && "delivery" in value) {
     const delivery = value.delivery;
     if (delivery && typeof delivery === "object" && "text" in delivery) {
-      return delivery.text;
+      if (delivery.text) return delivery.text;
+    }
+    if (delivery && typeof delivery === "object" && "schema" in delivery) {
+      return delivery.schema;
     }
   }
   return value;
