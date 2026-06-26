@@ -37,6 +37,9 @@ test("local entitlement API smoke flow covers health, activation, and report ret
       return { ok: true, campaignId: "campaign-e2e" };
     },
     hostedAddContentItems: async () => ({ ok: true }),
+    hostedDeleteContentItem: async () => ({ ok: true }),
+    hostedListContentItems: async () => ({ ok: true }),
+    hostedUpdateContentItem: async () => ({ ok: true }),
     hostedConnectX: async () => ({ ok: true }),
     hostedCreateCampaign: async () => ({ ok: true }),
     hostedGenerateVoiceIdeas: async () => ({ ok: true }),

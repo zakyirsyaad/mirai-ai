@@ -113,6 +113,9 @@ Primary command surface:
 /mirai activate <license>
 /mirai connect-x
 /mirai create <campaign brief>
+/mirai content list
+/mirai content edit <id> <revised text>
+/mirai content delete <id>
 /mirai policy
 /mirai start
 /mirai pause
@@ -141,9 +144,11 @@ Autopost campaign:
 5. Optional: `mirai_set_voice_profile`
 6. Optional: `mirai_set_content_policy`
 7. Optional for user-supplied mode: `mirai_add_content_items`
-8. `mirai_start_autopost` with `approved=true`
-9. `mirai_get_campaign`
-10. `mirai_get_report`
+8. Optional for queued content revision: `mirai_list_content_items`,
+   `mirai_update_content_item`, `mirai_delete_content_item`
+9. `mirai_start_autopost` with `approved=true`
+10. `mirai_get_campaign`
+11. `mirai_get_report`
 
 Voice & Ideas:
 

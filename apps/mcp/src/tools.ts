@@ -3,15 +3,18 @@ import {
   hostedAddContentItems,
   hostedConnectX,
   hostedCreateCampaign,
+  hostedDeleteContentItem,
   hostedGenerateVoiceIdeas,
   hostedGetCampaign,
   hostedGetReport,
   hostedHealthcheck,
+  hostedListContentItems,
   hostedPauseAutopost,
   hostedResumeAutopost,
   hostedSetContentPolicy,
   hostedSetVoiceProfile,
   hostedStartAutopost,
+  hostedUpdateContentItem,
 } from "./hosted-client.js";
 
 export type ContentMode = "AUTONOMOUS" | "USER_SUPPLIED";
@@ -67,6 +70,21 @@ export async function setContentPolicy(policy: ContentPolicyPayload): Promise<un
 
 export async function addContentItems(items: string[]): Promise<unknown> {
   return hostedAddContentItems(items);
+}
+
+export async function listContentItems(): Promise<unknown> {
+  return hostedListContentItems();
+}
+
+export async function updateContentItem(args: {
+  itemId: string;
+  rawText: string;
+}): Promise<unknown> {
+  return hostedUpdateContentItem(args.itemId, args.rawText);
+}
+
+export async function deleteContentItem(itemId: string): Promise<unknown> {
+  return hostedDeleteContentItem(itemId);
 }
 
 export async function startAutopost(approved: boolean): Promise<unknown> {

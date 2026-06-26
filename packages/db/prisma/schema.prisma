@@ -91,6 +91,7 @@ model ContentItem {
   status       ContentItemStatus @default(PENDING)
   usedByPostId String?
   createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@index([campaignId, status])
 }

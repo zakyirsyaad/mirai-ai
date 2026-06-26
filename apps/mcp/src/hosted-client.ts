@@ -73,6 +73,26 @@ export async function hostedAddContentItems(items: string[]): Promise<unknown> {
   return request("/mcp/content", { method: "POST", body: { items } });
 }
 
+export async function hostedListContentItems(): Promise<unknown> {
+  return request("/mcp/content", { method: "GET" });
+}
+
+export async function hostedUpdateContentItem(
+  itemId: string,
+  rawText: string,
+): Promise<unknown> {
+  return request(`/mcp/content/${encodeURIComponent(itemId)}`, {
+    method: "PATCH",
+    body: { rawText },
+  });
+}
+
+export async function hostedDeleteContentItem(itemId: string): Promise<unknown> {
+  return request(`/mcp/content/${encodeURIComponent(itemId)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function hostedStartAutopost(approved: boolean): Promise<unknown> {
   return request("/mcp/start", { method: "POST", body: { approved } });
 }
@@ -100,7 +120,7 @@ export async function hostedGenerateVoiceIdeas(): Promise<unknown> {
 async function request(
   path: string,
   args: {
-    method: "GET" | "POST";
+    method: "DELETE" | "GET" | "PATCH" | "POST";
     body?: unknown;
     licenseKey?: string | null;
   },

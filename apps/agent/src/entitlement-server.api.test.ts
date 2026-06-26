@@ -16,6 +16,9 @@ function testHandlers(
     checkEntitlement: async () => ({ ok: true, payload: { wallet: "0x1" } }) as never,
     hostedActivate: notUsed,
     hostedAddContentItems: notUsed,
+    hostedDeleteContentItem: notUsed,
+    hostedListContentItems: notUsed,
+    hostedUpdateContentItem: notUsed,
     hostedConnectX: notUsed,
     hostedCreateCampaign: notUsed,
     hostedGenerateVoiceIdeas: notUsed,
@@ -58,6 +61,63 @@ test("GET /health returns hosted health JSON", async () => {
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { ok: true, db: "test" });
   });
+});
+
+test("content queue endpoints support list, update, and delete", async () => {
+  const calls: string[] = [];
+  await withServer(
+    testHandlers({
+      hostedListContentItems: async (licenseKey) => {
+        calls.push(`list:${licenseKey}`);
+        return { ok: true, items: [{ id: "item-1", status: "PENDING" }] };
+      },
+      hostedUpdateContentItem: async (licenseKey, itemId, rawText) => {
+        calls.push(`update:${licenseKey}:${itemId}:${rawText}`);
+        return { ok: true, item: { id: itemId, rawText, status: "PENDING" } };
+      },
+      hostedDeleteContentItem: async (licenseKey, itemId) => {
+        calls.push(`delete:${licenseKey}:${itemId}`);
+        return { ok: true, deleted: itemId };
+      },
+    }),
+    async (baseUrl) => {
+      const headers = { authorization: "Bearer mirai-license" };
+
+      const list = await fetch(`${baseUrl}/mcp/content`, { headers });
+      assert.equal(list.status, 200);
+      assert.deepEqual(await list.json(), {
+        ok: true,
+        items: [{ id: "item-1", status: "PENDING" }],
+      });
+
+      const update = await fetch(`${baseUrl}/mcp/content/item-1`, {
+        method: "PATCH",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({ rawText: "revised post" }),
+      });
+      assert.equal(update.status, 200);
+      assert.deepEqual(await update.json(), {
+        ok: true,
+        item: { id: "item-1", rawText: "revised post", status: "PENDING" },
+      });
+
+      const deletion = await fetch(`${baseUrl}/mcp/content/item-1`, {
+        method: "DELETE",
+        headers,
+      });
+      assert.equal(deletion.status, 200);
+      assert.deepEqual(await deletion.json(), {
+        ok: true,
+        deleted: "item-1",
+      });
+
+      assert.deepEqual(calls, [
+        "list:mirai-license",
+        "update:mirai-license:item-1:revised post",
+        "delete:mirai-license:item-1",
+      ]);
+    },
+  );
 });
 
 test("POST /mcp/campaign requires Bearer license before reading campaign body", async () => {

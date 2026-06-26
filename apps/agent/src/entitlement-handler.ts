@@ -10,6 +10,13 @@ export interface HostedHandlers {
   }) => Promise<{ ok: true; payload: unknown } | { ok: false; reason: string }>;
   hostedActivate: (licenseKey: string) => Promise<unknown>;
   hostedAddContentItems: (licenseKey: string, items: string[]) => Promise<unknown>;
+  hostedDeleteContentItem: (licenseKey: string, itemId: string) => Promise<unknown>;
+  hostedListContentItems: (licenseKey: string) => Promise<unknown>;
+  hostedUpdateContentItem: (
+    licenseKey: string,
+    itemId: string,
+    rawText: string,
+  ) => Promise<unknown>;
   hostedConnectX: (licenseKey: string) => Promise<unknown>;
   hostedCreateCampaign: (licenseKey: string, args: never) => Promise<unknown>;
   hostedGenerateVoiceIdeas: (licenseKey: string) => Promise<unknown>;
@@ -144,6 +151,36 @@ async function routeHostedMcp(
     );
     return;
   }
+  if (req.method === "GET" && url.pathname === "/mcp/content") {
+    writeJson(res, 200, await handlers.hostedListContentItems(licenseKey));
+    return;
+  }
+  const contentItemId = matchContentItemPath(url.pathname);
+  if (contentItemId && req.method === "PATCH") {
+    const body = (await readJson(req)) as { rawText?: string };
+    if (!body.rawText?.trim()) {
+      writeJson(res, 400, { ok: false, error: "rawText required" });
+      return;
+    }
+    writeJson(
+      res,
+      200,
+      await handlers.hostedUpdateContentItem(
+        licenseKey,
+        contentItemId,
+        body.rawText,
+      ),
+    );
+    return;
+  }
+  if (contentItemId && req.method === "DELETE") {
+    writeJson(
+      res,
+      200,
+      await handlers.hostedDeleteContentItem(licenseKey, contentItemId),
+    );
+    return;
+  }
   if (req.method === "POST" && url.pathname === "/mcp/start") {
     const body = (await readJson(req)) as { approved?: boolean };
     writeJson(
@@ -182,6 +219,12 @@ function readBearer(req: IncomingMessage): string | null {
   if (!header) return null;
   const [scheme, token] = header.split(" ");
   return scheme?.toLowerCase() === "bearer" && token ? token : null;
+}
+
+function matchContentItemPath(pathname: string): string | null {
+  const match = pathname.match(/^\/mcp\/content\/([^/]+)$/);
+  const itemId = match?.[1];
+  return itemId ? decodeURIComponent(itemId) : null;
 }
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
