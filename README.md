@@ -237,8 +237,24 @@ pnpm agent:dev
 Default development mode uses mocks:
 
 - `X_MODE=mock` avoids real X API calls.
-- Empty `ANTHROPIC_API_KEY` uses the deterministic mock LLM.
+- Empty LLM keys use the deterministic mock LLM.
+- Set `LLM_PROVIDER=openmodel`, `OPENMODEL_API_KEY`, and
+  `OPENMODEL_MODEL=deepseek-v4-flash` to use OpenModel for content generation.
 - Empty `CROO_SDK_KEY` lets the pipeline run without marketplace intake.
+
+Safe OpenModel demo (real LLM, mock X, no CROO/Redis required):
+
+```bash
+LLM_PROVIDER=openmodel
+OPENMODEL_MODEL=deepseek-v4-flash
+pnpm --filter @mirai/agent smoke:openmodel
+```
+
+Set `OPENMODEL_API_KEY` in your local `.env` before running the command.
+
+The smoke command generates five draft variants with OpenModel, runs the draft
+tournament, posts to the mock X adapter, records mock metrics, and prints a
+sample report summary with the winning draft style and learning note.
 
 Local MCP development:
 

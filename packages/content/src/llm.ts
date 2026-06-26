@@ -4,10 +4,10 @@ import type { Env } from "@mirai/shared";
 /**
  * LLM abstraction. The content engine depends on this interface, not on the
  * Anthropic SDK directly, so the whole pipeline can run with a deterministic
- * mock when ANTHROPIC_API_KEY is absent (zero cost, no network).
+ * mock when no configured provider key is present (zero cost, no network).
  */
 export interface Llm {
-  readonly kind: "anthropic" | "mock";
+  readonly kind: "anthropic" | "openmodel" | "mock";
   /** Single-turn completion. `system` steers; `prompt` is the user turn. */
   complete(args: {
     system: string;
@@ -19,14 +19,29 @@ export interface Llm {
 
 /** Real Anthropic-backed LLM. */
 export class AnthropicLlm implements Llm {
-  readonly kind = "anthropic" as const;
+  readonly kind: "anthropic" | "openmodel";
   private readonly client: Anthropic;
 
   constructor(
     apiKey: string,
     private readonly defaultModel: string,
+    options: {
+      baseURL?: string;
+      kind?: "anthropic" | "openmodel";
+      timeoutMs?: number;
+    } = {},
   ) {
-    this.client = new Anthropic({ apiKey });
+    this.kind = options.kind ?? "anthropic";
+    this.client = new Anthropic({
+      apiKey,
+      baseURL: options.baseURL,
+      timeout:
+        options.timeoutMs ?? (options.kind === "openmodel" ? 60_000 : undefined),
+      defaultHeaders:
+        options.kind === "openmodel"
+          ? { "accept-encoding": "identity" }
+          : undefined,
+    });
   }
 
   async complete(args: {
@@ -68,16 +83,50 @@ export class MockLlm implements Llm {
       });
     }
     // Otherwise return a plausible single tweet.
-    const seed = args.prompt.slice(0, 40).replace(/\s+/g, " ").trim();
+    const variant = args.prompt.match(/Variant style:\s*(.+)/)?.[1];
+    const angle = args.prompt.match(/Angle for this post:\s*(.+)/)?.[1];
+    const seed = (variant ?? angle ?? args.prompt)
+      .slice(0, 40)
+      .replace(/\s+/g, " ")
+      .trim();
     return `Mock post grounded in: ${seed} — building in public, one step at a time.`;
   }
 }
 
-/** Pick the LLM from config; mock unless an Anthropic key is present. */
+/** Pick the LLM from config; mock unless a real provider is configured. */
 export function createLlm(env: Env): Llm {
+  if (env.LLM_PROVIDER === "mock") return new MockLlm();
+
+  if (env.LLM_PROVIDER === "openmodel") {
+    if (!env.OPENMODEL_API_KEY) {
+      throw new Error("OPENMODEL_API_KEY is required when LLM_PROVIDER=openmodel.");
+    }
+    return new AnthropicLlm(env.OPENMODEL_API_KEY, env.OPENMODEL_MODEL, {
+      baseURL: env.OPENMODEL_BASE_URL,
+      kind: "openmodel",
+      timeoutMs: 60_000,
+    });
+  }
+
+  if (env.LLM_PROVIDER === "anthropic") {
+    if (!env.ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic.");
+    }
+    return new AnthropicLlm(env.ANTHROPIC_API_KEY, env.CONTENT_MODEL);
+  }
+
+  if (env.OPENMODEL_API_KEY) {
+    return new AnthropicLlm(env.OPENMODEL_API_KEY, env.OPENMODEL_MODEL, {
+      baseURL: env.OPENMODEL_BASE_URL,
+      kind: "openmodel",
+      timeoutMs: 60_000,
+    });
+  }
+
   if (env.ANTHROPIC_API_KEY) {
     return new AnthropicLlm(env.ANTHROPIC_API_KEY, env.CONTENT_MODEL);
   }
+
   return new MockLlm();
 }
 

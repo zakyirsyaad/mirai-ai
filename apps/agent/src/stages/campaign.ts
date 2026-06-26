@@ -1,14 +1,12 @@
 import { prisma, CampaignStatus, PostStage } from "@mirai/db";
 import {
   A2ADelegationTaskTypeSchema,
-  ServiceType,
   Stage,
   type A2ADelegationTaskType,
-  type ContentAgentDeliverable,
 } from "@mirai/shared";
 import { publishEvent, now } from "../publisher.js";
 import { acquireQueue, postJobId, type CampaignJob } from "../queues.js";
-import { redactA2ASecrets } from "../a2a/redaction.js";
+import { buildContentAgentDeliverable } from "../campaign-report.js";
 
 /**
  * Campaign-level processor — handles INTAKE→BRIEF→PLAN ("start") and the final
@@ -94,51 +92,10 @@ async function deliverCampaign(campaignId: string): Promise<void> {
     },
   });
 
-  const posts = campaign.scheduledPosts;
-  const deliverable: ContentAgentDeliverable = {
-    service: ServiceType.ContentAgent7d,
-    campaignId,
-    xHandle: campaign.session.xConnection?.xHandle ?? "unknown",
-    windowStart: campaign.createdAt.toISOString(),
-    windowEnd: campaign.accessExpiresAt.toISOString(),
-    summary: {
-      planned: posts.length,
-      posted: posts.filter((p) => p.stage === PostStage.RECORDED || p.tweetId)
-        .length,
-      skipped: posts.filter((p) => p.stage === PostStage.SKIPPED).length,
-      failed: posts.filter((p) => p.stage === PostStage.FAILED).length,
-    },
-    posts: posts.map((p) => ({
-      scheduledFor: p.scheduledFor.toISOString(),
-      postedAt: p.postedAt ? p.postedAt.toISOString() : null,
-      tweetId: p.tweetId,
-      tweetUrl: p.tweetUrl,
-      text: p.draftText ?? "",
-      status:
-        p.stage === PostStage.SKIPPED
-          ? "SKIPPED"
-          : p.tweetId
-            ? "POSTED"
-            : "FAILED",
-      metrics:
-        (p.metrics as ContentAgentDeliverable["posts"][number]["metrics"]) ??
-        undefined,
-    })),
-    a2aDelegations: campaign.a2aDelegations.map((delegation) => ({
-      taskType: normalizeA2ADelegationTaskType(delegation.taskType),
-      downstreamAgent: delegation.downstreamAgent,
-      downstreamServiceId: delegation.downstreamServiceId,
-      downstreamNegotiationId: delegation.downstreamNegotiationId,
-      downstreamOrderId: delegation.downstreamOrderId,
-      status: delegation.status,
-      request: delegation.requestJson,
-      response: redactA2ASecrets(delegation.responseJson ?? null),
-      error: delegation.error,
-      startedAt: delegation.startedAt.toISOString(),
-      paidAt: delegation.paidAt?.toISOString() ?? null,
-      completedAt: delegation.completedAt?.toISOString() ?? null,
-    })),
-  };
+  const deliverable = buildContentAgentDeliverable(
+    campaign,
+    normalizeA2ADelegationTaskType,
+  );
 
   console.log(
     `[campaign] final report generated for ${campaignId}: ${deliverable.summary.posted}/${deliverable.summary.planned} posted.`,

@@ -38,6 +38,14 @@ const patterns = [
     regex: new RegExp("ANTHROPIC_API_KEY=" + "[^\\n]*\\S", "g"),
   },
   {
+    name: "populated OPENMODEL_API_KEY",
+    regex: new RegExp("OPENMODEL_API_KEY=" + "[^\\n]*\\S", "g"),
+  },
+  {
+    name: "OpenModel API key",
+    regex: new RegExp("om-" + "[A-Za-z0-9_-]{20,}", "g"),
+  },
+  {
     name: "populated TOKEN_VAULT_KEY",
     regex: new RegExp("TOKEN_VAULT_KEY=" + "[^\\n]*\\S", "g"),
   },

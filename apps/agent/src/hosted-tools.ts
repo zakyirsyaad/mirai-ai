@@ -10,7 +10,6 @@ import {
 } from "@mirai/db";
 import {
   A2ADelegationTaskTypeSchema,
-  ContentAgentDeliverableSchema,
   ContentPolicySchema,
   LicenseScope,
   ServiceType,
@@ -40,7 +39,7 @@ import {
 } from "@mirai/x";
 import { campaignQueue } from "./queues.js";
 import { checkEntitlement, type SensitiveAction } from "./entitlements.js";
-import { redactA2ASecrets } from "./a2a/redaction.js";
+import { buildContentAgentDeliverable } from "./campaign-report.js";
 
 const env = loadEnv();
 
@@ -452,54 +451,13 @@ export async function hostedGetReport(
   const campaign = await prisma.campaign.findUniqueOrThrow({
     where: { id: access.campaignId },
     include: {
+      order: true,
       session: { include: { xConnection: true } },
       scheduledPosts: { orderBy: { slotIndex: "asc" } },
       a2aDelegations: { orderBy: { createdAt: "asc" } },
     },
   });
-  const posts = campaign.scheduledPosts;
-  return ContentAgentDeliverableSchema.parse({
-    service: ServiceType.ContentAgent7d,
-    campaignId: campaign.id,
-    xHandle: campaign.session.xConnection?.xHandle ?? "unknown",
-    windowStart: campaign.createdAt.toISOString(),
-    windowEnd: campaign.accessExpiresAt.toISOString(),
-    summary: {
-      planned: posts.length,
-      posted: posts.filter((p) => p.stage === PostStage.RECORDED || p.tweetId)
-        .length,
-      skipped: posts.filter((p) => p.stage === PostStage.SKIPPED).length,
-      failed: posts.filter((p) => p.stage === PostStage.FAILED).length,
-    },
-    posts: posts.map((p) => ({
-      scheduledFor: p.scheduledFor.toISOString(),
-      postedAt: p.postedAt?.toISOString() ?? null,
-      tweetId: p.tweetId,
-      tweetUrl: p.tweetUrl,
-      text: p.draftText ?? "",
-      status:
-        p.stage === PostStage.SKIPPED
-          ? "SKIPPED"
-          : p.tweetId
-            ? "POSTED"
-            : "FAILED",
-      metrics: p.metrics ?? undefined,
-    })),
-    a2aDelegations: campaign.a2aDelegations.map((delegation) => ({
-      taskType: normalizeA2ADelegationTaskType(delegation.taskType),
-      downstreamAgent: delegation.downstreamAgent,
-      downstreamServiceId: delegation.downstreamServiceId,
-      downstreamNegotiationId: delegation.downstreamNegotiationId,
-      downstreamOrderId: delegation.downstreamOrderId,
-      status: delegation.status,
-      request: delegation.requestJson,
-      response: redactA2ASecrets(delegation.responseJson ?? null),
-      error: delegation.error,
-      startedAt: delegation.startedAt.toISOString(),
-      paidAt: delegation.paidAt?.toISOString() ?? null,
-      completedAt: delegation.completedAt?.toISOString() ?? null,
-    })),
-  });
+  return buildContentAgentDeliverable(campaign, normalizeA2ADelegationTaskType);
 }
 
 function normalizeA2ADelegationTaskType(

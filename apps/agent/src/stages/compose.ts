@@ -4,7 +4,13 @@ import {
   Stage,
   type VoiceProfilePayload,
 } from "@mirai/shared";
-import { write, rewrite, type GroundingSignals } from "@mirai/content";
+import {
+  runDraftTournament,
+  writeVariants,
+  rewrite,
+  type DraftTournamentResult,
+  type GroundingSignals,
+} from "@mirai/content";
 import { llm } from "../clients.js";
 import { publishEvent, now } from "../publisher.js";
 import { reviewQueue, postJobId, type PostJob } from "../queues.js";
@@ -16,6 +22,7 @@ import { reviewQueue, postJobId, type PostJob } from "../queues.js";
 interface AcquiredAutonomous {
   kind: "autonomous";
   signals: GroundingSignals;
+  draftTournament?: DraftTournamentResult;
 }
 interface AcquiredUser {
   kind: "user";
@@ -54,23 +61,41 @@ export async function processCompose(job: PostJob): Promise<void> {
     ? ContentPolicySchema.parse(post.campaign.contentPolicy)
     : null;
   let draft: string;
+  let rawMaterial = post.rawMaterial ?? "{}";
   if (acquired.kind === "user") {
     draft = await rewrite(llm, acquired.rawText, voice, policy);
   } else {
-    draft = await write(
+    const angle =
+      post.angle ??
+      acquired.signals.angle ??
+      acquired.signals.themes[0] ??
+      "an update";
+    const variants = await writeVariants(
       llm,
       {
-        angle: post.angle ?? acquired.signals.themes[0] ?? "an update",
+        angle,
         signals: acquired.signals,
         policy,
       },
       voice,
     );
+    const tournament = runDraftTournament({
+      drafts: variants,
+      recent: await getRecentDrafts(campaignId, scheduledPostId),
+      policy,
+      topics: [...voice.topics, ...(policy?.allowedTopics ?? [])],
+      angle,
+    });
+    draft = tournament.winner.text;
+    rawMaterial = JSON.stringify({
+      ...acquired,
+      draftTournament: tournament,
+    });
   }
 
   await prisma.scheduledPost.update({
     where: { id: scheduledPostId },
-    data: { stage: PostStage.COMPOSED, draftText: draft },
+    data: { stage: PostStage.COMPOSED, draftText: draft, rawMaterial },
   });
   await reviewQueue.add("review", job, {
     jobId: postJobId("review", scheduledPostId),
@@ -83,4 +108,24 @@ export async function processCompose(job: PostJob): Promise<void> {
     status: "completed",
     at: now(),
   });
+}
+
+async function getRecentDrafts(
+  campaignId: string,
+  scheduledPostId: string,
+): Promise<string[]> {
+  const posts = await prisma.scheduledPost.findMany({
+    where: {
+      campaignId,
+      id: { not: scheduledPostId },
+      draftText: { not: null },
+    },
+    orderBy: { slotIndex: "desc" },
+    take: 25,
+  });
+  return posts.map((post) => post.draftText).filter(isString);
+}
+
+function isString(value: string | null): value is string {
+  return typeof value === "string" && value.length > 0;
 }

@@ -28,3 +28,18 @@ test("loadEnv treats blank Universal Workbench env values as absent", () => {
   assert.equal(env.CROO_A2A_WORKBENCH_AGENT_NAME, undefined);
   resetEnvCache();
 });
+
+test("loadEnv parses OpenModel LLM configuration", () => {
+  resetEnvCache();
+  const env = loadEnv({
+    LLM_PROVIDER: "openmodel",
+    OPENMODEL_API_KEY: "test-openmodel-key",
+    OPENMODEL_MODEL: "deepseek-v4-flash",
+  });
+
+  assert.equal(env.LLM_PROVIDER, "openmodel");
+  assert.equal(env.OPENMODEL_API_KEY, "test-openmodel-key");
+  assert.equal(env.OPENMODEL_BASE_URL, "https://api.openmodel.ai");
+  assert.equal(env.OPENMODEL_MODEL, "deepseek-v4-flash");
+  resetEnvCache();
+});

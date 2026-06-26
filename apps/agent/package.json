@@ -24,6 +24,7 @@
     "test:e2e:real-a2a": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/croo build && pnpm build && node scripts/real-creative-a2a-e2e.mjs",
     "test:security": "node scripts/security-scan.mjs",
     "test:performance": "pnpm build && node scripts/perf-a2a-contract.mjs",
+    "smoke:openmodel": "pnpm --filter @mirai/shared build && pnpm --filter @mirai/content build && pnpm build && node scripts/openmodel-smoke.mjs",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
