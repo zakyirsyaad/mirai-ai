@@ -260,6 +260,7 @@ model A2ADelegation {
   scheduledPostId         String?
   scheduledPost           ScheduledPost?      @relation(fields: [scheduledPostId], references: [id], onDelete: SetNull)
   upstreamCrooOrderId     String
+  taskType                 String              @default("creative-pack")
   downstreamAgent         String
   downstreamServiceId     String
   downstreamNegotiationId String?
@@ -276,6 +277,7 @@ model A2ADelegation {
 
   @@index([campaignId, status])
   @@index([scheduledPostId])
+  @@index([scheduledPostId, downstreamServiceId, taskType])
   @@index([downstreamServiceId])
 }
 

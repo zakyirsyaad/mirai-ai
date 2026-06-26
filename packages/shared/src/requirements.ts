@@ -86,7 +86,22 @@ export const DeliveredPostSchema = z.object({
 });
 export type DeliveredPost = z.infer<typeof DeliveredPostSchema>;
 
+export const A2ADelegationTaskType = {
+  ResearchPack: "research-pack",
+  CreativePack: "creative-pack",
+  SafetyPack: "safety-pack",
+} as const;
+export type A2ADelegationTaskType =
+  (typeof A2ADelegationTaskType)[keyof typeof A2ADelegationTaskType];
+
+export const A2ADelegationTaskTypeSchema = z.enum([
+  A2ADelegationTaskType.ResearchPack,
+  A2ADelegationTaskType.CreativePack,
+  A2ADelegationTaskType.SafetyPack,
+]);
+
 export const A2ADelegationProofSchema = z.object({
+  taskType: A2ADelegationTaskTypeSchema.nullable(),
   downstreamAgent: z.string().min(1),
   downstreamServiceId: z.string().min(1),
   downstreamNegotiationId: z.string().nullable(),
