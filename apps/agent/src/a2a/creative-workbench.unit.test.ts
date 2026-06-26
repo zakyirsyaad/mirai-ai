@@ -42,14 +42,16 @@ test("buildCreativeWorkbenchRequest creates creator-ops A2A requests", () => {
 
   assert.equal(request.packType, "creator-ops");
   assert.equal(request.track, "creator-content-ops");
+  assert.equal(request.taskType, "creative-pack");
   assert.equal(request.language, "id");
-  assert.match(request.prompt, /creator-ops work pack/);
+  assert.match(request.prompt, /campaign angles/);
   assert.match(request.prompt, /voice-fit notes/);
   assert.doesNotMatch(request.prompt, /evidence checks/i);
   assert.deepEqual(request.miraiTrace, {
     campaignId: "campaign-1",
     scheduledPostId: "post-1",
     upstreamCrooOrderId: "order-1",
+    taskType: "creative-pack",
   });
 });
 
@@ -66,11 +68,10 @@ test("mergeSignals appends downstream A2A evidence without dropping base signals
 
   assert.deepEqual(merged.themes, [
     "creator workflow",
-    "downstream creative workbench",
-    "A2A creator-ops pack",
+    "Universal Workbench creative-pack",
   ]);
   assert.deepEqual(merged.trends, ["AI agents"]);
-  assert.match(merged.note, /A2A creative workbench delivery/);
+  assert.match(merged.note, /Universal Workbench creative-pack delivery/);
 });
 
 test("redactA2ASecrets removes private downstream codes from nested reports", () => {

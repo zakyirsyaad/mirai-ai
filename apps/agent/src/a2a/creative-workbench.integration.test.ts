@@ -47,7 +47,8 @@ test("Creative workbench A2A contract turns delivery into safe grounding", () =>
 
   assert.equal(request.packType, "creator-ops");
   assert.equal(request.track, "creator-content-ops");
+  assert.equal(request.taskType, "creative-pack");
   assert.equal(request.language, "en");
-  assert.match(merged.note, /creative workbench/);
+  assert.match(merged.note, /Universal Workbench creative-pack/);
   assert.equal(JSON.stringify(report).includes(privateCode), false);
 });

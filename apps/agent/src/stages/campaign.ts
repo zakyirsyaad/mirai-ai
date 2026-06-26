@@ -1,7 +1,9 @@
 import { prisma, CampaignStatus, PostStage } from "@mirai/db";
 import {
+  A2ADelegationTaskTypeSchema,
   ServiceType,
   Stage,
+  type A2ADelegationTaskType,
   type ContentAgentDeliverable,
 } from "@mirai/shared";
 import { publishEvent, now } from "../publisher.js";
@@ -123,6 +125,7 @@ async function deliverCampaign(campaignId: string): Promise<void> {
         undefined,
     })),
     a2aDelegations: campaign.a2aDelegations.map((delegation) => ({
+      taskType: normalizeA2ADelegationTaskType(delegation.taskType),
       downstreamAgent: delegation.downstreamAgent,
       downstreamServiceId: delegation.downstreamServiceId,
       downstreamNegotiationId: delegation.downstreamNegotiationId,
@@ -159,6 +162,13 @@ async function deliverCampaign(campaignId: string): Promise<void> {
     status: "COMPLETED",
     at: now(),
   });
+}
+
+function normalizeA2ADelegationTaskType(
+  value: string,
+): A2ADelegationTaskType | null {
+  const parsed = A2ADelegationTaskTypeSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 /** Re-export so the scheduler can fan a planned slot into ACQUIRE. */
