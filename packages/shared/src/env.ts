@@ -76,6 +76,8 @@ const EnvSchema = z.object({
   CROO_SERVICE_VOICE_IDEAS_ID: optionalStr(),
   CROO_A2A_CREATIVE_SERVICE_ID: optionalStr(),
   CROO_A2A_CREATIVE_AGENT_NAME: optionalStr(),
+  CROO_A2A_WORKBENCH_SERVICE_ID: optionalStr(),
+  CROO_A2A_WORKBENCH_AGENT_NAME: optionalStr(),
 
   // X (Twitter)
   X_MODE: z.enum(["mock", "real"]).default("mock"),
