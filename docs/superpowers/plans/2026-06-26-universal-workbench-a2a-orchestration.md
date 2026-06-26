@@ -1825,7 +1825,7 @@ proof.safetyDecision = parseSafetyDecision({
 Run without real payment credentials:
 
 ```bash
-CROO_SDK_KEY= pnpm test:e2e:real-a2a
+env -u CROO_SDK_KEY pnpm test:e2e:real-a2a
 ```
 
 Expected: FAIL with `CROO_SDK_KEY is required for paid CROO A2A E2E.`
