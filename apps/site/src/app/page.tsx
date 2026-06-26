@@ -8,6 +8,7 @@ import {
   Github,
   KeyRound,
   LockKeyhole,
+  ListFilter,
   ServerCog,
   ShieldCheck,
   Sparkles,
@@ -23,7 +24,7 @@ const clients = ["Codex", "Claude Code/CLI", "Hermes"];
 
 const steps = [
   ["Buy on CROO", "Choose a Mirai service and receive a signed access license."],
-    ["Install plugin", "Add the Mirai plugin/profile for your client."],
+  ["Install plugin", "Add the Mirai plugin/profile for your client."],
   ["Connect X", "OAuth tokens stay encrypted in the hosted worker runtime."],
   ["Approve once", "Mirai plans and runs the campaign until license expiry."],
 ];
@@ -121,6 +122,7 @@ export default function HomePage() {
                     "14 scheduled posts",
                     "Hosted worker and scheduler",
                     "Queued content revisions",
+                    "FYP-inspired signal ranking",
                     "Campaign content policy",
                     "X OAuth token encryption",
                     "Proof-of-work report",
@@ -215,6 +217,7 @@ export default function HomePage() {
           {[
             [KeyRound, "Signed licenses", "Ed25519 keys verify service, scopes, limits, and expiry."],
             [ServerCog, "Hosted worker", "Users do not manage Postgres, Redis, Docker, or schedulers."],
+            [ListFilter, "FYP-inspired ranking", "Owned X signals are ranked by freshness, topic fit, quality, and learned campaign performance."],
             [ShieldCheck, "Expiry enforcement", "Sensitive actions check entitlement before posting or resuming."],
           ].map(([Icon, title, text]) => {
             const TrustIcon = Icon as typeof KeyRound;

@@ -201,6 +201,30 @@ Runtime boundaries:
 - The MCP package embeds only the license public key.
 - The license private key stays provider-side only.
 
+## FYP-Inspired Recommendation Layer
+
+Mirai's autonomous mode includes a small recommendation layer inspired by the
+open-source [xai-org/x-algorithm](https://github.com/xai-org/x-algorithm)
+repository, which documents the pipeline behind the X For You feed. Mirai does
+not run X's production algorithm or copy private ranking weights. It adapts the
+public design pattern for a constrained content agent:
+
+1. **Candidate sourcing**: ACQUIRE gathers owned X reads such as the buyer's
+   timeline, own tweets, and personalized trends.
+2. **Filtering**: obvious low-quality candidates are penalized or removed,
+   including URL-heavy material, stale signals, and near-duplicates.
+3. **Ranking**: `packages/content/src/recommendation.ts` scores candidates by
+   topical match, freshness, engagement quality, and learned campaign history.
+4. **Selection**: COMPOSE uses the selected angle and signals to generate five
+   draft variants.
+5. **Post-ranking**: the draft tournament ranks variants by policy safety,
+   length, topic/angle fit, and genericness before REVIEW gates the winner.
+6. **Learning loop**: RECORD stores engagement metrics and performance scores so
+   later slots can prefer angles that have already worked for the campaign.
+
+This gives Mirai an FYP-style retrieval -> ranking -> filtering -> selection
+shape while staying transparent, auditable, and safe for a paid CROO order.
+
 ## Licensing
 
 License format:

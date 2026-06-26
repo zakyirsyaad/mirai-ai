@@ -162,6 +162,43 @@ export default function DocsPage() {
         </div>
       </section>
 
+      <section className="border-y border-border bg-card/70">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <Badge variant="secondary">FYP-inspired ranking</Badge>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
+              Mirai adapts the public X algorithm shape for autonomous content.
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+              The recommendation layer is inspired by the open-source{" "}
+              <a
+                className="font-medium text-foreground underline underline-offset-4"
+                href="https://github.com/xai-org/x-algorithm"
+                target="_blank"
+                rel="noreferrer"
+              >
+                xai-org/x-algorithm
+              </a>{" "}
+              repository. Mirai does not run X&apos;s production ranking system;
+              it uses the same retrieval, ranking, filtering, and selection
+              pattern for a transparent CROO content agent.
+            </p>
+          </div>
+          <div className="grid gap-3 text-sm text-muted-foreground">
+            {[
+              "ACQUIRE gathers owned X signals from timeline, own tweets, and trends.",
+              "The recommendation engine ranks signals by freshness, topical match, engagement quality, and campaign history.",
+              "COMPOSE generates five variants, then the draft tournament selects the safest and strongest candidate.",
+              "RECORD stores engagement metrics so future slots can prefer angles that already performed well.",
+            ].map((item) => (
+              <div key={item} className="rounded-md border border-border bg-background p-4">
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-4xl px-5 py-16 sm:px-8">
         <Badge variant="outline">Troubleshooting</Badge>
         <Accordion type="single" collapsible className="mt-5">
