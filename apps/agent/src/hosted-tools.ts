@@ -9,6 +9,7 @@ import {
   prisma,
 } from "@mirai/db";
 import {
+  A2ADelegationTaskTypeSchema,
   ContentAgentDeliverableSchema,
   ContentPolicySchema,
   LicenseScope,
@@ -19,6 +20,7 @@ import {
   decryptToken,
   encryptToken,
   loadEnv,
+  type A2ADelegationTaskType,
   type ContentAgentDeliverable,
   type ContentPolicyPayload,
   type LicensePayload,
@@ -422,6 +424,7 @@ export async function hostedGetReport(
       metrics: p.metrics ?? undefined,
     })),
     a2aDelegations: campaign.a2aDelegations.map((delegation) => ({
+      taskType: normalizeA2ADelegationTaskType(delegation.taskType),
       downstreamAgent: delegation.downstreamAgent,
       downstreamServiceId: delegation.downstreamServiceId,
       downstreamNegotiationId: delegation.downstreamNegotiationId,
@@ -435,6 +438,13 @@ export async function hostedGetReport(
       completedAt: delegation.completedAt?.toISOString() ?? null,
     })),
   });
+}
+
+function normalizeA2ADelegationTaskType(
+  value: string,
+): A2ADelegationTaskType | null {
+  const parsed = A2ADelegationTaskTypeSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 export async function hostedGenerateVoiceIdeas(
