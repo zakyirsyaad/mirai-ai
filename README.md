@@ -113,6 +113,9 @@ Primary command surface:
 /mirai activate <license>
 /mirai connect-x
 /mirai create <campaign brief>
+/mirai content list
+/mirai content edit <id> <revised text>
+/mirai content delete <id>
 /mirai policy
 /mirai start
 /mirai pause
@@ -141,9 +144,11 @@ Autopost campaign:
 5. Optional: `mirai_set_voice_profile`
 6. Optional: `mirai_set_content_policy`
 7. Optional for user-supplied mode: `mirai_add_content_items`
-8. `mirai_start_autopost` with `approved=true`
-9. `mirai_get_campaign`
-10. `mirai_get_report`
+8. Optional for queued content revision: `mirai_list_content_items`,
+   `mirai_update_content_item`, `mirai_delete_content_item`
+9. `mirai_start_autopost` with `approved=true`
+10. `mirai_get_campaign`
+11. `mirai_get_report`
 
 Voice & Ideas:
 
@@ -160,6 +165,12 @@ Content policy can restrict what Mirai may post automatically. Supported fields
 are `allowedTopics`, `blockedTopics`, `blockedPhrases`, `language`,
 `toneRules`, `formatRules`, and `requireApprovalFor`. Drafts that violate hard
 policy checks are skipped before they reach X.
+
+User-supplied content has a revision queue. Buyers can run `/mirai content list`
+to inspect queued items, `/mirai content edit <id> <revised text>` to revise a
+pending item, and `/mirai content delete <id>` to remove a pending item before
+Mirai uses it. Once an item is claimed by the posting pipeline, it is locked so
+the proof-of-work report stays consistent.
 
 ## Architecture
 
@@ -226,8 +237,24 @@ pnpm agent:dev
 Default development mode uses mocks:
 
 - `X_MODE=mock` avoids real X API calls.
-- Empty `ANTHROPIC_API_KEY` uses the deterministic mock LLM.
+- Empty LLM keys use the deterministic mock LLM.
+- Set `LLM_PROVIDER=openmodel`, `OPENMODEL_API_KEY`, and
+  `OPENMODEL_MODEL=deepseek-v4-flash` to use OpenModel for content generation.
 - Empty `CROO_SDK_KEY` lets the pipeline run without marketplace intake.
+
+Safe OpenModel demo (real LLM, mock X, no CROO/Redis required):
+
+```bash
+LLM_PROVIDER=openmodel
+OPENMODEL_MODEL=deepseek-v4-flash
+pnpm --filter @mirai/agent smoke:openmodel
+```
+
+Set `OPENMODEL_API_KEY` in your local `.env` before running the command.
+
+The smoke command generates five draft variants with OpenModel, runs the draft
+tournament, posts to the mock X adapter, records mock metrics, and prints a
+sample report summary with the winning draft style and learning note.
 
 Local MCP development:
 
@@ -264,7 +291,7 @@ Site env examples:
 
 ```bash
 NEXT_PUBLIC_CROO_MARKETPLACE_URL=
-NEXT_PUBLIC_MIRAI_API_URL=https://api.mirai-agent.com
+NEXT_PUBLIC_MIRAI_API_URL=http://mirai.43-129-56-85.sslip.io
 NEXT_PUBLIC_NPM_PACKAGE_NAME=@mirai-agent/mcp
 ```
 
@@ -278,22 +305,21 @@ Set service IDs in provider env:
 ```bash
 CROO_SERVICE_CONTENT_AGENT_7D_ID=
 CROO_SERVICE_VOICE_IDEAS_ID=
-CROO_A2A_CREATIVE_SERVICE_ID=a8f1c20d-73f4-4551-856a-32315e18d261
-CROO_A2A_CREATIVE_AGENT_NAME=Universal Workbench AI Agent
+CROO_A2A_WORKBENCH_SERVICE_ID=a8f1c20d-73f4-4551-856a-32315e18d261
+CROO_A2A_WORKBENCH_AGENT_NAME=Universal Workbench AI Agent
 ```
 
 Mirai resolves the purchased service from CROO `serviceId`. Do not require the
 buyer to enter a service id.
 
-`CROO_A2A_CREATIVE_SERVICE_ID` points at the downstream creative agent Mirai
-hires while fulfilling autonomous campaigns. The default is Universal Workbench
-AI Agent service `a8f1c20d-73f4-4551-856a-32315e18d261`, but it can be swapped
-for any CROO agent that accepts a creator-ops work request. Mirai stores the CAP
-trace, redacts private downstream proof from public reports, and folds the
-delivery summary into the grounding note used by COMPOSE. The Mirai CROO agent
-wallet must hold enough USDC to pay that downstream order; otherwise
-`payOrder()` fails and the scheduled post remains blocked at ACQUIRE with a
-persisted `A2ADelegation` error.
+`CROO_A2A_WORKBENCH_SERVICE_ID` points at the downstream Universal Workbench
+service Mirai hires while fulfilling autonomous campaigns. `CROO_A2A_CREATIVE_*`
+remains supported as a backward-compatible alias. Mirai stores each CAP trace,
+redacts private downstream proof from public reports, and folds the delivery
+summary into the grounding note used by COMPOSE. The Mirai CROO agent wallet
+must hold enough USDC to pay those downstream orders; otherwise `payOrder()`
+fails and the scheduled post remains blocked at ACQUIRE with a persisted
+`A2ADelegation` error.
 
 Recommended CROO service config:
 
@@ -322,11 +348,11 @@ license-first flow.
 ## CROO SDK Methods Used
 
 - `connectWebSocket()` for the single Provider event stream.
-- `negotiateOrder(req)` for Mirai's real A2A downstream creative workbench request.
+- `negotiateOrder(req)` for Mirai's real downstream Universal Workbench requests.
 - `acceptNegotiation(id)` for supported Mirai services.
 - `rejectNegotiation(id)` for unknown service IDs.
-- `payOrder(orderId)` for the downstream CAP order Mirai buys.
-- `getDelivery(orderId)` for the downstream creative workbench delivery.
+- `payOrder(orderId)` for the downstream CAP orders Mirai buys.
+- `getDelivery(orderId)` for downstream Universal Workbench deliveries.
 - `deliverOrder(orderId, req)` for immediate text license delivery.
 - Events: `NegotiationCreated`, `OrderPaid`, `OrderCompleted`.
 
@@ -336,28 +362,30 @@ report remains available through MCP.
 
 ## Real A2A Handoff
 
-Autonomous campaigns include one real downstream CAP order per campaign:
+Autonomous campaigns can hire Universal Workbench for three paid downstream CAP
+work orders:
 
 ```text
-Mirai Content Agent -> Creative Workbench CROO Agent -> Mirai writer
+Mirai Content Agent -> Universal Workbench: research-pack
+Mirai Content Agent -> Universal Workbench: creative-pack
+Mirai Content Agent -> Universal Workbench: safety-pack
 ```
 
 At ACQUIRE, Mirai sends the buyer's campaign context, voice profile, policy, and
-owned X grounding signals to the configured creative workbench service through
-`negotiateOrder()`. The requirements payload includes `packType:
+owned X grounding signals to the configured Universal Workbench service through
+`negotiateOrder()`. Each requirements payload includes `taskType`, `packType:
 "creator-ops"`, `track: "creator-content-ops"`, a natural-language `prompt`,
-and a structured Mirai trace. The prompt asks for campaign angles, one
-recommended post direction, voice-fit notes, draft seeds, and risks to avoid.
-After `OrderCompleted`, Mirai stores the
-downstream delivery as private A2A proof, redacts sensitive fields from public
-report payloads, and folds the delivery summary into the grounding note used by
-COMPOSE. This is deliberately not mocked: missing `CROO_SDK_KEY`, missing
-`CROO_A2A_CREATIVE_SERVICE_ID`, or an unfunded Mirai agent wallet causes ACQUIRE
-to fail/retry with a persisted `A2ADelegation` error.
+and a structured Mirai trace. Mirai does not claim these are three different
+counterparties. The hackathon value is A2A depth: one downstream workbench
+performs three distinct paid tasks, and Mirai stores each task's negotiation ID,
+order ID, payment state, delivery, and redacted response in `a2aDelegations[]`.
+This is deliberately not mocked: missing `CROO_SDK_KEY`, missing a workbench
+service ID, or an unfunded Mirai agent wallet causes ACQUIRE to fail/retry with a
+persisted `A2ADelegation` error.
 
 The final `mirai_get_report` payload includes `a2aDelegations[]` with downstream
-service ID, negotiation ID, order ID, status, request, response, and timestamps
-so judges can trace the A2A relationship from the submitted demo.
+task type, service ID, negotiation ID, order ID, status, request, response, and
+timestamps so judges can trace the A2A relationship from the submitted demo.
 
 ### Real Paid A2A Proof
 
@@ -386,6 +414,21 @@ pnpm test:e2e:real-a2a
 
 The command verifies the public downstream service price before payment and
 refuses to pay if it exceeds `MAX_APPROVED_MICRO_USDC` (`10000` by default).
+
+The three-task E2E output is redacted JSON with this shape:
+
+```json
+{
+  "downstreamAgent": "Universal Workbench AI Agent",
+  "downstreamServiceId": "a8f1c20d-73f4-4551-856a-32315e18d261",
+  "tasks": [
+    { "taskType": "research-pack", "downstreamOrderId": "...", "payTxHash": "..." },
+    { "taskType": "creative-pack", "downstreamOrderId": "...", "payTxHash": "..." },
+    { "taskType": "safety-pack", "downstreamOrderId": "...", "payTxHash": "..." }
+  ],
+  "safetyDecision": { "verdict": "PASS", "reason": null }
+}
+```
 
 ### Real Paid Provider Proof
 

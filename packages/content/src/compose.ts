@@ -1,4 +1,5 @@
 import type { ContentPolicyPayload, VoiceProfilePayload } from "@mirai/shared";
+import { DRAFT_VARIANT_STYLES, type DraftVariant } from "./draft-tournament.js";
 import type { Llm } from "./llm.js";
 import type { GroundingSignals } from "./source.js";
 import { voiceToPromptFragment } from "./voice.js";
@@ -33,17 +34,36 @@ export async function write(
   voice: VoiceProfilePayload,
   model?: string,
 ): Promise<string> {
-  const prompt = [
-    `Voice:\n${voiceToPromptFragment(voice)}`,
-    "",
-    `Angle for this post: ${brief.angle}`,
-    brief.signals ? `\nRelevant now: ${brief.signals.note}` : "",
-    brief.policy ? `\nContent policy:\n${policyToPromptFragment(brief.policy)}` : "",
-    "",
-    "Write the post.",
-  ].join("\n");
+  const prompt = buildWritePrompt(brief, voice);
   const text = await llm.complete({ system: WRITE_SYSTEM, prompt, model });
   return clampTweet(text);
+}
+
+export async function writeVariants(
+  llm: Llm,
+  brief: WriteBrief,
+  voice: VoiceProfilePayload,
+  options: {
+    count?: number;
+    model?: string;
+  } = {},
+): Promise<DraftVariant[]> {
+  const styles = DRAFT_VARIANT_STYLES.slice(0, options.count ?? 5);
+  const drafts = await Promise.all(
+    styles.map(async (style) => {
+      const prompt = buildWritePrompt(brief, voice, style.instruction);
+      const text = await llm.complete({
+        system: WRITE_SYSTEM,
+        prompt,
+        model: options.model,
+      });
+      return {
+        style: style.id,
+        text: clampTweet(text),
+      };
+    }),
+  );
+  return drafts;
 }
 
 const REWRITE_SYSTEM = `You rewrite the user's raw content into a single polished X post in their voice.
@@ -91,6 +111,23 @@ function policyToPromptFragment(policy: ContentPolicyPayload): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function buildWritePrompt(
+  brief: WriteBrief,
+  voice: VoiceProfilePayload,
+  variantInstruction?: string,
+): string {
+  return [
+    `Voice:\n${voiceToPromptFragment(voice)}`,
+    "",
+    `Angle for this post: ${brief.angle}`,
+    brief.signals ? `\nRelevant now: ${brief.signals.note}` : "",
+    brief.policy ? `\nContent policy:\n${policyToPromptFragment(brief.policy)}` : "",
+    variantInstruction ? `\nVariant style: ${variantInstruction}` : "",
+    "",
+    "Write the post.",
+  ].join("\n");
 }
 
 /** Strip wrapping quotes/whitespace and hard-cap to tweet length. */

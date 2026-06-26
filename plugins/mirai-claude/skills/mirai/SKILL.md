@@ -29,9 +29,11 @@ For individual actions:
 3. Connect X with `mirai_connect_x`.
 4. Create a campaign with `mirai_create_campaign`.
 5. Set content filters with `mirai_set_content_policy` when the user gives allowed topics, blocked topics, blocked phrases, language, tone, format, or approval-only subjects.
-6. Start posting only after explicit user approval.
-7. Use `mirai_get_campaign` for status and `mirai_get_report` for proof.
+6. Use `mirai_list_content_items`, `mirai_update_content_item`, and `mirai_delete_content_item` when the user wants to review, revise, or remove queued user-supplied content.
+7. Start posting only after explicit user approval.
+8. Use `mirai_get_campaign` for status and `mirai_get_report` for proof.
 
 Never request or expose raw X tokens, refresh tokens, private license keys,
 database URLs, Redis passwords, or `.env` secrets.
 Confirm active content filters before starting autopost.
+Only pending content items can be revised or deleted; used items are locked by the posting pipeline.

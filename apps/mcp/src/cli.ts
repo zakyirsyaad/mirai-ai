@@ -170,10 +170,14 @@ X_CLIENT_ID=
 X_CLIENT_SECRET=
 X_OAUTH_REDIRECT_URI=http://127.0.0.1:3000/api/x/callback
 
-# Content engine. Empty key uses deterministic mock LLM.
+# Content engine. Empty keys use deterministic mock LLM.
+LLM_PROVIDER=auto
 ANTHROPIC_API_KEY=
 CONTENT_MODEL=claude-sonnet-4-6
 CONTENT_MODEL_HQ=claude-opus-4-8
+OPENMODEL_API_KEY=
+OPENMODEL_BASE_URL=https://api.openmodel.ai
+OPENMODEL_MODEL=deepseek-v4-flash
 
 # Mirai entitlement/license verification.
 MIRAI_LICENSE_PUBLIC_KEY=${existingPublicKey ?? ""}

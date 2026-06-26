@@ -9,7 +9,7 @@ import {
   prisma,
 } from "@mirai/db";
 import {
-  ContentAgentDeliverableSchema,
+  A2ADelegationTaskTypeSchema,
   ContentPolicySchema,
   LicenseScope,
   ServiceType,
@@ -19,6 +19,7 @@ import {
   decryptToken,
   encryptToken,
   loadEnv,
+  type A2ADelegationTaskType,
   type ContentAgentDeliverable,
   type ContentPolicyPayload,
   type LicensePayload,
@@ -38,7 +39,7 @@ import {
 } from "@mirai/x";
 import { campaignQueue } from "./queues.js";
 import { checkEntitlement, type SensitiveAction } from "./entitlements.js";
-import { redactA2ASecrets } from "./a2a/redaction.js";
+import { buildContentAgentDeliverable } from "./campaign-report.js";
 
 const env = loadEnv();
 
@@ -267,6 +268,68 @@ export async function hostedAddContentItems(
   return { ok: true, added: clean.length };
 }
 
+export async function hostedListContentItems(
+  licenseKey: string,
+): Promise<unknown> {
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.CampaignWrite,
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
+  const items = await prisma.contentItem.findMany({
+    where: { campaignId: access.campaignId },
+    orderBy: { createdAt: "asc" },
+  });
+  return {
+    ok: true,
+    campaignId: access.campaignId,
+    items: items.map(serializeContentItem),
+  };
+}
+
+export async function hostedUpdateContentItem(
+  licenseKey: string,
+  itemId: string,
+  rawText: string,
+): Promise<unknown> {
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.CampaignWrite,
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
+  const clean = rawText.trim();
+  if (!clean) throw new Error("rawText required.");
+  const item = await findOwnedContentItem(access.campaignId, itemId);
+  assertContentItemEditable(item.status);
+  const updated = await prisma.contentItem.update({
+    where: { id: item.id },
+    data: { rawText: clean },
+  });
+  return {
+    ok: true,
+    campaignId: access.campaignId,
+    item: serializeContentItem(updated),
+  };
+}
+
+export async function hostedDeleteContentItem(
+  licenseKey: string,
+  itemId: string,
+): Promise<unknown> {
+  const access = await ensureHostedAccess(
+    licenseKey,
+    LicenseScope.CampaignWrite,
+  );
+  if (!access.campaignId)
+    throw new Error("No campaign exists for this license.");
+  const item = await findOwnedContentItem(access.campaignId, itemId);
+  assertContentItemEditable(item.status);
+  await prisma.contentItem.delete({ where: { id: item.id } });
+  return { ok: true, campaignId: access.campaignId, deleted: item.id };
+}
+
 export async function hostedStartAutopost(
   licenseKey: string,
   approved: boolean,
@@ -388,53 +451,20 @@ export async function hostedGetReport(
   const campaign = await prisma.campaign.findUniqueOrThrow({
     where: { id: access.campaignId },
     include: {
+      order: true,
       session: { include: { xConnection: true } },
       scheduledPosts: { orderBy: { slotIndex: "asc" } },
       a2aDelegations: { orderBy: { createdAt: "asc" } },
     },
   });
-  const posts = campaign.scheduledPosts;
-  return ContentAgentDeliverableSchema.parse({
-    service: ServiceType.ContentAgent7d,
-    campaignId: campaign.id,
-    xHandle: campaign.session.xConnection?.xHandle ?? "unknown",
-    windowStart: campaign.createdAt.toISOString(),
-    windowEnd: campaign.accessExpiresAt.toISOString(),
-    summary: {
-      planned: posts.length,
-      posted: posts.filter((p) => p.stage === PostStage.RECORDED || p.tweetId)
-        .length,
-      skipped: posts.filter((p) => p.stage === PostStage.SKIPPED).length,
-      failed: posts.filter((p) => p.stage === PostStage.FAILED).length,
-    },
-    posts: posts.map((p) => ({
-      scheduledFor: p.scheduledFor.toISOString(),
-      postedAt: p.postedAt?.toISOString() ?? null,
-      tweetId: p.tweetId,
-      tweetUrl: p.tweetUrl,
-      text: p.draftText ?? "",
-      status:
-        p.stage === PostStage.SKIPPED
-          ? "SKIPPED"
-          : p.tweetId
-            ? "POSTED"
-            : "FAILED",
-      metrics: p.metrics ?? undefined,
-    })),
-    a2aDelegations: campaign.a2aDelegations.map((delegation) => ({
-      downstreamAgent: delegation.downstreamAgent,
-      downstreamServiceId: delegation.downstreamServiceId,
-      downstreamNegotiationId: delegation.downstreamNegotiationId,
-      downstreamOrderId: delegation.downstreamOrderId,
-      status: delegation.status,
-      request: delegation.requestJson,
-      response: redactA2ASecrets(delegation.responseJson ?? null),
-      error: delegation.error,
-      startedAt: delegation.startedAt.toISOString(),
-      paidAt: delegation.paidAt?.toISOString() ?? null,
-      completedAt: delegation.completedAt?.toISOString() ?? null,
-    })),
-  });
+  return buildContentAgentDeliverable(campaign, normalizeA2ADelegationTaskType);
+}
+
+function normalizeA2ADelegationTaskType(
+  value: string,
+): A2ADelegationTaskType | null {
+  const parsed = A2ADelegationTaskTypeSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 export async function hostedGenerateVoiceIdeas(
@@ -609,6 +639,58 @@ async function upsertVoiceProfile(
       goal: meta.goal,
     },
   });
+}
+
+async function findOwnedContentItem(
+  campaignId: string,
+  itemId: string,
+): Promise<{
+  id: string;
+  campaignId: string;
+  rawText: string;
+  status: ContentItemStatus;
+  usedByPostId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}> {
+  const item = await prisma.contentItem.findFirst({
+    where: { id: itemId, campaignId },
+  });
+  if (!item) throw new Error("Content item not found for this campaign.");
+  return item;
+}
+
+function assertContentItemEditable(status: ContentItemStatus): void {
+  if (status !== ContentItemStatus.PENDING) {
+    throw new Error("Only pending content items can be revised or deleted.");
+  }
+}
+
+function serializeContentItem(item: {
+  id: string;
+  rawText: string;
+  status: ContentItemStatus;
+  usedByPostId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): {
+  id: string;
+  rawText: string;
+  status: ContentItemStatus;
+  editable: boolean;
+  usedByPostId: string | null;
+  createdAt: string;
+  updatedAt: string;
+} {
+  return {
+    id: item.id,
+    rawText: item.rawText,
+    status: item.status,
+    editable: item.status === ContentItemStatus.PENDING,
+    usedByPostId: item.usedByPostId,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  };
 }
 
 async function upsertContentPolicy(

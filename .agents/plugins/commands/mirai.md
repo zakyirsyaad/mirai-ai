@@ -1,6 +1,6 @@
 ---
 description: Control Mirai AI campaigns through the Mirai MCP server.
-argument-hint: "setup <license> | status | activate <license> | connect-x | create | policy | start | pause | resume | report | ideas"
+argument-hint: "setup <license> | status | activate <license> | connect-x | create | content list|edit|delete | policy | start | pause | resume | report | ideas"
 ---
 
 # /mirai
@@ -16,6 +16,9 @@ Command input: `$ARGUMENTS`
 - `activate <license>`: call `mirai_activate_license` with the license key, then call `mirai_healthcheck`.
 - `connect-x`: call `mirai_connect_x` and summarize the connected account or OAuth next step.
 - `create`: call `mirai_create_campaign` using the user's campaign brief and requested mode.
+- `content list`: call `mirai_list_content_items` and show ids, status, editable flag, and short previews.
+- `content edit <id> <text>`: call `mirai_update_content_item` only for pending items; if no text is provided, ask for the revised text.
+- `content delete <id>`: call `mirai_delete_content_item` only for pending items; explain that used/posted items cannot be changed.
 - `policy`: call `mirai_set_content_policy` using allowed topics, blocked topics, blocked phrases, language, tone rules, format rules, and approval-only subjects from the user's request.
 - `start`: call `mirai_get_campaign`, summarize account/mode/expiry/14-post limit/content policy, then ask for explicit approval before calling `mirai_start_autopost` with `approved=true`.
 - `pause`: call `mirai_pause_autopost`, then call `mirai_get_campaign`.
@@ -29,9 +32,10 @@ Command input: `$ARGUMENTS`
 2. Never expose raw X tokens, refresh tokens, private license keys, database URLs, or `.env` secrets.
 3. Never start autoposting without explicit user approval in the current conversation.
 4. Confirm content filters before starting autopost when the user has not provided them.
-5. If a license is expired, revoked, or missing a scope, explain the status and do not post.
-6. If no action is provided, call `mirai_healthcheck` and show a short menu of next actions.
-7. Keep responses concise and practical.
+5. Let users revise or delete queued user-supplied content with the content tools before Mirai uses it.
+6. If a license is expired, revoked, or missing a scope, explain the status and do not post.
+7. If no action is provided, call `mirai_healthcheck` and show a short menu of next actions.
+8. Keep responses concise and practical.
 
 ## Setup Flow
 

@@ -1,7 +1,14 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { A2ADelegationStatus, Prisma, prisma } from "@mirai/db";
-import { loadEnv } from "@mirai/shared";
+import { A2ADelegationTaskType, loadEnv } from "@mirai/shared";
 import type { GroundingSignals } from "@mirai/content";
+import {
+  buildUniversalWorkbenchRequest,
+  mergeWorkbenchOutputs,
+  type UniversalWorkbenchRequest,
+} from "./workbench-types.js";
+
+export { readResponseLanguage } from "./workbench-types.js";
 
 const env = loadEnv();
 const DEFAULT_DOWNSTREAM_AGENT = "Universal Workbench AI Agent";
@@ -26,31 +33,7 @@ export interface AcquireCreativeWorkbenchSignalsArgs {
   contentPolicy: unknown;
 }
 
-export interface CreativeWorkbenchRequest {
-  prompt: string;
-  packType: "creator-ops";
-  track: "creator-content-ops";
-  language: "en" | "id";
-  context: {
-    requester: "mirai-ai";
-    purpose: string;
-    campaign: {
-      campaignId: string;
-      scheduledPostId: string;
-      upstreamCrooOrderId: string;
-      niche: string | null;
-      topics: string[];
-    };
-    voiceProfile: AcquireCreativeWorkbenchSignalsArgs["voiceProfile"];
-    contentPolicy: unknown;
-    baseSignals: GroundingSignals;
-  };
-  miraiTrace: {
-    campaignId: string;
-    scheduledPostId: string;
-    upstreamCrooOrderId: string;
-  };
-}
+export type CreativeWorkbenchRequest = UniversalWorkbenchRequest;
 
 export async function acquireCreativeWorkbenchSignals(
   args: AcquireCreativeWorkbenchSignalsArgs,
@@ -149,65 +132,10 @@ export async function acquireCreativeWorkbenchSignals(
 export function buildCreativeWorkbenchRequest(
   args: AcquireCreativeWorkbenchSignalsArgs,
 ): CreativeWorkbenchRequest {
-  return {
-    prompt: buildCreativeTaskPrompt(args),
-    packType: "creator-ops",
-    track: "creator-content-ops",
-    language: readResponseLanguage(args.contentPolicy),
-    context: {
-      requester: "mirai-ai",
-      purpose:
-        "Mirai hires a downstream creative workbench agent to enrich one X campaign post with reusable campaign angles, voice-fit notes, draft seeds, and concise creator-ops guidance.",
-      campaign: {
-        campaignId: args.campaignId,
-        scheduledPostId: args.scheduledPostId,
-        upstreamCrooOrderId: args.upstreamCrooOrderId,
-        niche: args.niche,
-        topics: args.topics,
-      },
-      voiceProfile: args.voiceProfile,
-      contentPolicy: args.contentPolicy,
-      baseSignals: args.baseSignals,
-    },
-    miraiTrace: {
-      campaignId: args.campaignId,
-      scheduledPostId: args.scheduledPostId,
-      upstreamCrooOrderId: args.upstreamCrooOrderId,
-    },
-  };
-}
-
-function buildCreativeTaskPrompt(
-  args: AcquireCreativeWorkbenchSignalsArgs,
-): string {
-  const focus = dedupe([args.niche ?? "", ...args.topics]).join(", ");
-  const signals = dedupe([
-    ...args.baseSignals.themes,
-    ...args.baseSignals.trends,
-  ]).join(", ");
-  return [
-    "Create a creator-ops work pack for Mirai's X campaign.",
-    "This is a creator-content-ops task for campaign planning and copy direction.",
-    "Return concise campaign angles, one recommended post direction, voice-fit notes, draft seeds, and risks to avoid.",
-    focus ? `Campaign focus: ${focus}.` : "",
-    signals ? `Current signals: ${signals}.` : "",
-    args.baseSignals.note ? `Grounding note: ${args.baseSignals.note}` : "",
-    "The output should help produce concise, original, on-voice X post ideas without financial advice, unsupported claims, or URL-heavy copy.",
-  ]
-    .filter(Boolean)
-    .join(" ");
-}
-
-export function readResponseLanguage(contentPolicy: unknown): "en" | "id" {
-  if (
-    contentPolicy &&
-    typeof contentPolicy === "object" &&
-    "language" in contentPolicy &&
-    contentPolicy.language === "id"
-  ) {
-    return "id";
-  }
-  return "en";
+  return buildUniversalWorkbenchRequest({
+    ...args,
+    taskType: A2ADelegationTaskType.CreativePack,
+  });
 }
 
 async function findCompletedCampaignDelegation(
@@ -367,20 +295,12 @@ export function mergeSignals(
   baseSignals: GroundingSignals,
   creativeResponse: unknown,
 ): GroundingSignals {
-  const text = stringifyBrief(creativeResponse);
-  return {
-    themes: dedupe([
-      ...baseSignals.themes,
-      "downstream creative workbench",
-      "A2A creator-ops pack",
-    ]),
-    trends: baseSignals.trends,
-    note: [
-      baseSignals.note,
-      "A2A creative workbench delivery:",
-      text.slice(0, 2_000),
-    ].join("\n"),
-  };
+  return mergeWorkbenchOutputs(baseSignals, [
+    {
+      taskType: A2ADelegationTaskType.CreativePack,
+      response: creativeResponse,
+    },
+  ]);
 }
 
 function parseMaybeJson(value: string): unknown {
@@ -390,14 +310,6 @@ function parseMaybeJson(value: string): unknown {
   } catch {
     return value;
   }
-}
-
-function stringifyBrief(value: unknown): string {
-  return typeof value === "string" ? value : JSON.stringify(value);
-}
-
-function dedupe(items: string[]): string[] {
-  return [...new Set(items.filter(Boolean))];
 }
 
 function toJson(value: unknown): Prisma.InputJsonValue {

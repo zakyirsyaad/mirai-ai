@@ -75,18 +75,85 @@ export const DeliveredPostSchema = z.object({
   tweetUrl: z.string().url().nullable(),
   text: z.string(),
   status: z.enum(["POSTED", "SKIPPED", "FAILED"]),
+  angle: z.string().nullable().default(null),
+  recommendation: z
+    .object({
+      confidence: z.number().min(0).max(1).nullable().default(null),
+      selectedSignals: z
+        .array(
+          z.object({
+            text: z.string(),
+            source: z.enum(["timeline", "trend", "topic", "niche"]),
+            score: z.number(),
+            reasons: z.array(z.string()),
+          }),
+        )
+        .default([]),
+      learnedPreferences: z
+        .array(
+          z.object({
+            label: z.string(),
+            score: z.number(),
+            evidence: z.number().int().nonnegative(),
+          }),
+        )
+        .default([]),
+    })
+    .optional(),
+  draftTournament: z
+    .object({
+      variantCount: z.number().int().nonnegative(),
+      winner: z.object({
+        text: z.string(),
+        style: z.string(),
+        score: z.number(),
+        ok: z.boolean(),
+        reasons: z.array(z.string()),
+        reviewReasons: z.array(z.string()),
+      }),
+      candidates: z.array(
+        z.object({
+          text: z.string(),
+          style: z.string(),
+          score: z.number(),
+          ok: z.boolean(),
+          reasons: z.array(z.string()),
+          reviewReasons: z.array(z.string()),
+        }),
+      ),
+    })
+    .optional(),
   metrics: z
     .object({
       likes: z.number().int().nonnegative(),
       reposts: z.number().int().nonnegative(),
       replies: z.number().int().nonnegative(),
       impressions: z.number().int().nonnegative(),
+      performanceScore: z.number().nonnegative().optional(),
     })
     .optional(),
 });
 export type DeliveredPost = z.infer<typeof DeliveredPostSchema>;
 
+export const A2ADelegationTaskType = {
+  ResearchPack: "research-pack",
+  CreativePack: "creative-pack",
+  SafetyPack: "safety-pack",
+} as const;
+export type A2ADelegationTaskType =
+  (typeof A2ADelegationTaskType)[keyof typeof A2ADelegationTaskType];
+
+export const A2ADelegationTaskTypeSchema = z.enum([
+  A2ADelegationTaskType.ResearchPack,
+  A2ADelegationTaskType.CreativePack,
+  A2ADelegationTaskType.SafetyPack,
+]);
+
 export const A2ADelegationProofSchema = z.object({
+  delegationId: z.string().min(1).nullable().default(null),
+  scheduledPostId: z.string().nullable().default(null),
+  upstreamCrooOrderId: z.string().min(1).nullable().default(null),
+  taskType: A2ADelegationTaskTypeSchema.nullable(),
   downstreamAgent: z.string().min(1),
   downstreamServiceId: z.string().min(1),
   downstreamNegotiationId: z.string().nullable(),
@@ -111,6 +178,13 @@ export type A2ADelegationProof = z.infer<typeof A2ADelegationProofSchema>;
 export const ContentAgentDeliverableSchema = z.object({
   service: z.literal(ServiceType.ContentAgent7d),
   campaignId: z.string(),
+  capProof: z.object({
+    upstreamCrooOrderId: z.string().min(1),
+    negotiationId: z.string().nullable(),
+    orderStatus: z.enum(["PAID", "DELIVERED", "COMPLETED", "FAILED"]),
+    service: z.literal(ServiceType.ContentAgent7d),
+    deliveredAt: z.string().datetime().nullable(),
+  }),
   xHandle: z.string(),
   windowStart: z.string().datetime(),
   windowEnd: z.string().datetime(),
@@ -119,6 +193,30 @@ export const ContentAgentDeliverableSchema = z.object({
     posted: z.number().int().nonnegative(),
     skipped: z.number().int().nonnegative(),
     failed: z.number().int().nonnegative(),
+  }),
+  learning: z.object({
+    bestAngles: z.array(
+      z.object({
+        angle: z.string(),
+        averagePerformanceScore: z.number().nonnegative(),
+        posts: z.number().int().nonnegative(),
+      }),
+    ),
+    learnedPreferences: z.array(
+      z.object({
+        label: z.string(),
+        score: z.number(),
+        evidence: z.number().int().nonnegative(),
+      }),
+    ),
+    summary: z.string(),
+  }),
+  a2aSummary: z.object({
+    total: z.number().int().nonnegative(),
+    completed: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+    paid: z.number().int().nonnegative(),
+    downstreamOrders: z.number().int().nonnegative(),
   }),
   posts: z.array(DeliveredPostSchema),
   a2aDelegations: z.array(A2ADelegationProofSchema).default([]),

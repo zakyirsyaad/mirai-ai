@@ -24,10 +24,16 @@ const flow = [
   "mirai_create_campaign",
   "mirai_set_voice_profile",
   "mirai_set_content_policy",
+  "mirai_list_content_items",
+  "mirai_update_content_item",
   "mirai_start_autopost",
   "mirai_get_campaign",
   "mirai_get_report",
 ];
+
+const contentRevisionCommands = `/mirai content list
+/mirai content edit <id> <revised text>
+/mirai content delete <id>`;
 
 export default function DocsPage() {
   return (
@@ -121,6 +127,37 @@ export default function DocsPage() {
               blocked phrases, language, tone rules, format rules, and
               approval-only subjects before any draft can be posted.
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <Badge variant="outline">Content queue</Badge>
+          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-balance">
+            Revise user-supplied content before Mirai uses it.
+          </h2>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            In user-supplied mode, buyers can inspect queued content, revise
+            pending items, or remove them before a scheduled slot claims the
+            item. Once an item has been used by the posting pipeline, it is
+            locked so the campaign report stays consistent.
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="mb-3 text-sm font-semibold">Queue commands</div>
+          <CodeBlock value={contentRevisionCommands} />
+          <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
+            <div className="rounded-md bg-background p-3">
+              `PENDING` items can be edited or deleted.
+            </div>
+            <div className="rounded-md bg-background p-3">
+              `USED` items are locked after Mirai claims them for a post slot.
+            </div>
+            <div className="rounded-md bg-background p-3">
+              Hosted API mirrors the commands with `GET /mcp/content`, `PATCH
+              /mcp/content/:id`, and `DELETE /mcp/content/:id`.
+            </div>
           </div>
         </div>
       </section>

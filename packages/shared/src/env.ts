@@ -60,8 +60,8 @@ function parseEnvValue(value: string): string {
  * through `loadEnv()` instead of touching `process.env` directly, so a missing
  * or malformed variable fails fast at boot with a clear message.
  *
- * Secrets (CROO_SDK_KEY, X_CLIENT_SECRET, ANTHROPIC_API_KEY, TOKEN_VAULT_KEY)
- * live ONLY in `.env` (gitignored). Never hard-code them.
+ * Secrets (CROO_SDK_KEY, X_CLIENT_SECRET, ANTHROPIC_API_KEY, OPENMODEL_API_KEY,
+ * TOKEN_VAULT_KEY) live ONLY in `.env` (gitignored). Never hard-code them.
  */
 const EnvSchema = z.object({
   NODE_ENV: z
@@ -76,6 +76,8 @@ const EnvSchema = z.object({
   CROO_SERVICE_VOICE_IDEAS_ID: optionalStr(),
   CROO_A2A_CREATIVE_SERVICE_ID: optionalStr(),
   CROO_A2A_CREATIVE_AGENT_NAME: optionalStr(),
+  CROO_A2A_WORKBENCH_SERVICE_ID: optionalStr(),
+  CROO_A2A_WORKBENCH_AGENT_NAME: optionalStr(),
 
   // X (Twitter)
   X_MODE: z.enum(["mock", "real"]).default("mock"),
@@ -86,10 +88,16 @@ const EnvSchema = z.object({
     .url()
     .default("http://localhost:3000/api/x/callback"),
 
-  // Anthropic
+  // Content LLM
+  LLM_PROVIDER: z
+    .enum(["auto", "mock", "anthropic", "openmodel"])
+    .default("auto"),
   ANTHROPIC_API_KEY: optionalStr(),
   CONTENT_MODEL: z.string().default("claude-sonnet-4-6"),
   CONTENT_MODEL_HQ: z.string().default("claude-opus-4-8"),
+  OPENMODEL_API_KEY: optionalStr(),
+  OPENMODEL_BASE_URL: z.string().url().default("https://api.openmodel.ai"),
+  OPENMODEL_MODEL: z.string().default("deepseek-v4-flash"),
 
   // Infra
   DATABASE_URL: z

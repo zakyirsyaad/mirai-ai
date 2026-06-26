@@ -1,9 +1,10 @@
 import { CrooClient } from "@mirai/croo";
 import { loadEnv } from "@mirai/shared";
 import {
-  buildCreativeWorkbenchRequest,
-  mergeSignals,
-} from "../dist/a2a/creative-workbench.js";
+  buildUniversalWorkbenchRequest,
+  mergeWorkbenchOutputs,
+  parseSafetyDecision,
+} from "../dist/a2a/workbench-types.js";
 import { redactA2ASecrets } from "../dist/a2a/redaction.js";
 
 const DEFAULT_CREATIVE_AGENT_ID = "0ad53b08-34bf-47a3-870f-5be9eaca0262";
@@ -22,10 +23,18 @@ if (!env.CROO_SDK_KEY) {
   throw new Error("CROO_SDK_KEY is required for paid CROO A2A E2E.");
 }
 
-const serviceId = env.CROO_A2A_CREATIVE_SERVICE_ID ?? DEFAULT_CREATIVE_SERVICE_ID;
-const agentId = process.env.CROO_A2A_CREATIVE_AGENT_ID ?? DEFAULT_CREATIVE_AGENT_ID;
+const serviceId =
+  env.CROO_A2A_WORKBENCH_SERVICE_ID ??
+  env.CROO_A2A_CREATIVE_SERVICE_ID ??
+  DEFAULT_CREATIVE_SERVICE_ID;
+const agentId =
+  process.env.CROO_A2A_WORKBENCH_AGENT_ID ??
+  process.env.CROO_A2A_CREATIVE_AGENT_ID ??
+  DEFAULT_CREATIVE_AGENT_ID;
 const downstreamAgent =
-  env.CROO_A2A_CREATIVE_AGENT_NAME ?? "Universal Workbench AI Agent";
+  env.CROO_A2A_WORKBENCH_AGENT_NAME ??
+  env.CROO_A2A_CREATIVE_AGENT_NAME ??
+  "Universal Workbench AI Agent";
 
 const publicAgent = await fetchPublicAgent(env.CROO_API_URL, agentId);
 const service = findPublicService(publicAgent, serviceId);
@@ -45,23 +54,8 @@ await client.connectHttpOnly();
 const baseSignals = {
   themes: ["creator workflow", "campaign planning"],
   trends: ["AI agents", "content automation"],
-  note: "Manual paid CROO A2A E2E: request a creator-ops work pack for Mirai campaign support.",
+  note: "Manual paid CROO A2A E2E: request research, creative, and safety work packs for Mirai campaign support.",
 };
-const request = buildCreativeWorkbenchRequest({
-  campaignId: "real-creative-a2a-e2e",
-  scheduledPostId: `real-creative-a2a-e2e-${Date.now()}`,
-  upstreamCrooOrderId: "manual-paid-e2e",
-  topics: ["AI creator agents", "content ops", "X campaign copy"],
-  niche: "autonomous X content",
-  baseSignals,
-  voiceProfile: {
-    tone: "clear and evidence-led",
-    topics: ["AI agents", "creator workflows"],
-    styleNotes: ["specific", "concise"],
-    doNots: ["no unsupported predictions"],
-  },
-  contentPolicy: { language: "id" },
-});
 
 const proof = {
   downstreamAgent,
@@ -69,52 +63,86 @@ const proof = {
   downstreamServiceId: serviceId,
   approvedMaxMicroUsdc: MAX_APPROVED_MICRO_USDC,
   verifiedPriceMicroUsdc: priceMicroUsdc,
-  steps: [],
+  tasks: [],
 };
 
 try {
-  const negotiation = await client.negotiateOrder({
-    serviceId,
-    requirements: request,
-    metadata: {
-      requester: "mirai-ai",
-      kind: "paid-real-a2a-e2e",
-      downstreamAgent,
-    },
+  const taskTypes = ["research-pack", "creative-pack", "safety-pack"];
+  const taskProofs = [];
+
+  for (const taskType of taskTypes) {
+    const request = buildUniversalWorkbenchRequest({
+      taskType,
+      campaignId: "real-universal-workbench-a2a-e2e",
+      scheduledPostId: `real-universal-workbench-a2a-e2e-${taskType}-${Date.now()}`,
+      upstreamCrooOrderId: "manual-paid-e2e",
+      topics: ["AI creator agents", "content ops", "X campaign copy"],
+      niche: "autonomous X content",
+      baseSignals,
+      voiceProfile: {
+        tone: "clear and evidence-led",
+        topics: ["AI agents", "creator workflows"],
+        styleNotes: ["specific", "concise"],
+        doNots: ["no unsupported predictions"],
+      },
+      contentPolicy: { language: "id" },
+    });
+
+    const taskProof = { taskType, request, steps: [] };
+    const negotiation = await client.negotiateOrder({
+      serviceId,
+      requirements: request,
+      metadata: {
+        requester: "mirai-ai",
+        kind: "paid-real-a2a-e2e",
+        downstreamAgent,
+        taskType,
+      },
+    });
+    taskProof.negotiationId = negotiation.negotiationId;
+    taskProof.steps.push({ step: "negotiateOrder", status: negotiation.status });
+
+    const createdOrder = await waitForPayableOrder(negotiation.negotiationId);
+    taskProof.downstreamOrderId = createdOrder.orderId;
+    taskProof.steps.push({ step: "orderCreated", status: createdOrder.status });
+
+    const payment = await client.payOrder(createdOrder.orderId);
+    taskProof.payTxHash = payment.txHash;
+    taskProof.steps.push({ step: "payOrder", status: payment.order.status });
+
+    const completedOrder = await waitForDeliveryReady(createdOrder.orderId);
+    taskProof.completedOrder = completedOrder;
+    taskProof.steps.push({
+      step: "deliveryReady",
+      status: completedOrder.status,
+    });
+
+    const delivery = normalizeDelivery(
+      await client.getDelivery(createdOrder.orderId),
+    );
+    taskProof.delivery = delivery;
+    taskProof.steps.push({ step: "getDelivery", status: "ok" });
+    taskProofs.push(taskProof);
+  }
+
+  proof.tasks = taskProofs;
+  proof.mergedSignals = mergeWorkbenchOutputs(
+    baseSignals,
+    taskProofs.map((task) => ({
+      taskType: task.taskType,
+      response: { delivery: task.delivery },
+    })),
+  );
+  proof.safetyDecision = parseSafetyDecision({
+    delivery: taskProofs.find((task) => task.taskType === "safety-pack")
+      ?.delivery,
   });
-  proof.negotiationId = negotiation.negotiationId;
-  proof.steps.push({ step: "negotiateOrder", status: negotiation.status });
-
-  const createdOrder = await waitForPayableOrder(negotiation.negotiationId);
-  proof.downstreamOrderId = createdOrder.orderId;
-  proof.steps.push({ step: "orderCreated", status: createdOrder.status });
-
-  const payment = await client.payOrder(createdOrder.orderId);
-  proof.payTxHash = payment.txHash;
-  proof.steps.push({ step: "payOrder", status: payment.order.status });
-
-  const completedOrder = await waitForDeliveryReady(createdOrder.orderId);
-  proof.completedOrder = completedOrder;
-  proof.steps.push({ step: "deliveryReady", status: completedOrder.status });
-
-  const delivery = normalizeDelivery(await client.getDelivery(createdOrder.orderId));
-  proof.delivery = delivery;
-  proof.mergedSignals = mergeSignals(baseSignals, {
-    creativeWorkbenchRequest: request,
-    delivery,
-  });
-  proof.steps.push({ step: "getDelivery", status: "ok" });
 
   console.log(JSON.stringify(redactA2ASecrets(proof), null, 2));
 } catch (err) {
   proof.error = err instanceof Error ? err.message : "unknown real A2A E2E error";
   proof.errorCode = err?.code ?? null;
-  proof.paymentAttempted = Boolean(proof.payTxHash);
-  proof.steps.push({
-    step: "failed",
-    status: proof.errorCode ?? "error",
-    message: proof.error,
-  });
+  proof.paymentAttempted = proof.tasks.some((task) => Boolean(task.payTxHash));
   console.error(JSON.stringify(redactA2ASecrets(proof), null, 2));
   process.exitCode = 1;
 } finally {

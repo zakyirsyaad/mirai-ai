@@ -120,6 +120,7 @@ export default function HomePage() {
                   {[
                     "14 scheduled posts",
                     "Hosted worker and scheduler",
+                    "Queued content revisions",
                     "Campaign content policy",
                     "X OAuth token encryption",
                     "Proof-of-work report",

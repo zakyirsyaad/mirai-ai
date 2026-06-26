@@ -1,4 +1,10 @@
 import type { XTrend, XTweet } from "@mirai/x";
+import {
+  recommendSignals,
+  type LearnedPreference,
+  type PerformanceHistoryItem,
+  type RecommendedSignal,
+} from "./recommendation.js";
 
 /**
  * Grounding signals for AUTONOMOUS mode. We turn the hirer's own X signals
@@ -12,6 +18,14 @@ export interface GroundingSignals {
   themes: string[];
   /** Trend names worth riding (filtered to the account's topics). */
   trends: string[];
+  /** Best ranked source material, with scoring reasons for observability. */
+  selectedSignals?: RecommendedSignal[];
+  /** Feedback-derived preferences from earlier posts in the same campaign. */
+  learnedPreferences?: LearnedPreference[];
+  /** Recommendation engine's selected angle for this slot. */
+  angle?: string;
+  /** 0-1 confidence score for the selected angle/signals. */
+  confidence?: number;
   /** Raw note appended to the writer prompt. */
   note: string;
 }
@@ -21,23 +35,38 @@ export function groundFromX(
   timeline: XTweet[],
   trends: XTrend[],
   topics: string[],
+  context: {
+    niche?: string | null;
+    recentPosts?: string[];
+    history?: PerformanceHistoryItem[];
+  } = {},
 ): GroundingSignals {
+  const recommendation = recommendSignals({
+    timeline,
+    trends,
+    topics,
+    niche: context.niche,
+    recentPosts: context.recentPosts,
+    history: context.history,
+  });
   const themes = dedupe(
-    timeline
-      .flatMap((t) => extractKeywords(t.text))
-      .filter((k) => k.length > 3),
+    recommendation.selectedSignals
+      .filter((signal) => signal.source !== "trend")
+      .flatMap((signal) => extractKeywords(signal.text)),
   ).slice(0, 8);
-
-  const topicSet = new Set(topics.map((t) => t.toLowerCase()));
-  const ranked = trends
-    .map((t) => t.name)
-    .sort((a, b) => relevance(b, topicSet) - relevance(a, topicSet))
+  const ranked = recommendation.selectedSignals
+    .filter((signal) => signal.source === "trend")
+    .map((signal) => signal.text)
     .slice(0, 5);
 
   return {
     themes,
     trends: ranked,
-    note: `Timeline themes: ${themes.join(", ") || "n/a"}. Trends: ${ranked.join(", ") || "n/a"}.`,
+    selectedSignals: recommendation.selectedSignals,
+    learnedPreferences: recommendation.learnedPreferences,
+    angle: recommendation.angle,
+    confidence: recommendation.confidence,
+    note: recommendation.note,
   };
 }
 
@@ -69,15 +98,6 @@ function extractKeywords(text: string): string[] {
     .replace(/[^a-z0-9#\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 3 && !STOPWORDS.has(w));
-}
-
-function relevance(name: string, topicSet: Set<string>): number {
-  const lc = name.toLowerCase();
-  let score = 0;
-  for (const t of topicSet) {
-    if (lc.includes(t)) score += 2;
-  }
-  return score;
 }
 
 function dedupe(items: string[]): string[] {

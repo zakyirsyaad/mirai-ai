@@ -6,15 +6,18 @@ import {
   addContentItems,
   connectX,
   createCampaign,
+  deleteContentItem,
   generateVoiceIdeas,
   getCampaign,
   getReport,
   healthcheck,
+  listContentItems,
   pauseAutopost,
   resumeAutopost,
   setContentPolicy,
   setVoiceProfile,
   startAutopost,
+  updateContentItem,
 } from "./tools.js";
 
 export async function runMcpServer(): Promise<void> {
@@ -104,6 +107,27 @@ export async function runMcpServer(): Promise<void> {
     "Add raw content items for USER_SUPPLIED mode.",
     { items: z.array(z.string()).min(1).max(50) },
     async ({ items }) => json(await addContentItems(items)),
+  );
+
+  server.tool(
+    "mirai_list_content_items",
+    "List user-supplied content queue items and whether each one is still editable.",
+    {},
+    async () => json(await listContentItems()),
+  );
+
+  server.tool(
+    "mirai_update_content_item",
+    "Revise a pending user-supplied content item before Mirai uses it.",
+    { itemId: z.string().min(1), rawText: z.string().min(1) },
+    async (args) => json(await updateContentItem(args)),
+  );
+
+  server.tool(
+    "mirai_delete_content_item",
+    "Delete a pending user-supplied content item before Mirai uses it.",
+    { itemId: z.string().min(1) },
+    async ({ itemId }) => json(await deleteContentItem(itemId)),
   );
 
   server.tool(

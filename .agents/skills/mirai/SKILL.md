@@ -31,8 +31,9 @@ For a normal 7-day autopost campaign:
 5. Call `mirai_set_voice_profile` if the user provides explicit voice details or wants manual voice control.
 6. Call `mirai_set_content_policy` if the user provides allowed topics, blocked topics, blocked phrases, language, tone, format, or approval-only subjects.
 7. Call `mirai_add_content_items` only for user-supplied mode.
-8. Before posting, summarize account, mode, expiry, 14-post limit, and active content policy, then call `mirai_start_autopost` with `approved=true` only after the user clearly approves.
-9. Use `mirai_get_campaign` for status and `mirai_get_report` for proof-of-work.
+8. Use `mirai_list_content_items`, `mirai_update_content_item`, and `mirai_delete_content_item` when the user wants to review, revise, or remove queued user-supplied content.
+9. Before posting, summarize account, mode, expiry, 14-post limit, and active content policy, then call `mirai_start_autopost` with `approved=true` only after the user clearly approves.
+10. Use `mirai_get_campaign` for status and `mirai_get_report` for proof-of-work.
 
 For Voice & Ideas:
 
@@ -60,6 +61,7 @@ For Voice & Ideas:
 - "Continue/resume": call `mirai_resume_autopost`.
 - "Report", "proof", "tweet URLs", "metrics": call `mirai_get_report`.
 - "Use my notes/content": call `mirai_add_content_items`, then confirm user-supplied mode in campaign status.
+- "List/revise/delete queued content": call `mirai_list_content_items`, then `mirai_update_content_item` or `mirai_delete_content_item` for pending items only.
 - "Only post about...", "don't post about...", "filter posts", "content policy": call `mirai_set_content_policy`.
 - "Voice ideas only": call `mirai_generate_voice_ideas`; do not call posting tools.
 

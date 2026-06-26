@@ -1,4 +1,5 @@
 import { prisma, PostStage } from "@mirai/db";
+import { scorePerformance } from "@mirai/content";
 import { Stage } from "@mirai/shared";
 import { xClient } from "../clients.js";
 import { getXAccess } from "../tokens.js";
@@ -33,7 +34,7 @@ export async function processRecord(job: PostJob): Promise<void> {
         post.tweetId,
       ]);
       const m = all[post.tweetId];
-      if (m) metrics = { ...m };
+      if (m) metrics = { ...m, performanceScore: scorePerformance(m) };
     } catch {
       // Non-fatal — leave metrics unset.
     }
