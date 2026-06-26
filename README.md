@@ -264,7 +264,7 @@ Site env examples:
 
 ```bash
 NEXT_PUBLIC_CROO_MARKETPLACE_URL=
-NEXT_PUBLIC_MIRAI_API_URL=https://api.mirai-agent.com
+NEXT_PUBLIC_MIRAI_API_URL=http://mirai.43-129-56-85.sslip.io
 NEXT_PUBLIC_NPM_PACKAGE_NAME=@mirai-agent/mcp
 ```
 
