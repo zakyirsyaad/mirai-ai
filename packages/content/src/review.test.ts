@@ -23,6 +23,16 @@ test("accepts a post that matches allowed topics", () => {
   assert.equal(verdict.ok, true);
 });
 
+test("accepts singular and plural token matches for multi-word allowed topics", () => {
+  const verdict = review({
+    text: "Useful agents help founders move handoffs out of chat and into a workflow.",
+    recent: [],
+    policy: { ...basePolicy, allowedTopics: ["AI agents", "founder workflows"] },
+  });
+
+  assert.equal(verdict.ok, true);
+});
+
 test("rejects posts outside the allowed topics", () => {
   const verdict = review({
     text: "A weekend cooking note about better pasta sauce.",

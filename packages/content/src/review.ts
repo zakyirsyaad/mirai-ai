@@ -112,7 +112,36 @@ function reviewPolicy(text: string, policy: ContentPolicyPayload): string[] {
 }
 
 function containsTopic(lcText: string, topic: string): boolean {
-  return lcText.includes(topic.toLowerCase());
+  const normalizedText = normalizeTopicText(lcText);
+  const normalizedTopic = normalizeTopicText(topic);
+  if (!normalizedTopic) return false;
+  if (normalizedText.includes(normalizedTopic)) return true;
+
+  const textTokens = new Set(
+    normalizedText.split(" ").filter(Boolean).map(stemToken),
+  );
+  const topicTokens = normalizedTopic
+    .split(" ")
+    .filter((token) => token.length > 2)
+    .map(stemToken);
+  if (topicTokens.length === 0) return false;
+
+  const matches = topicTokens.filter((token) => textTokens.has(token)).length;
+  return topicTokens.length === 1
+    ? matches === 1
+    : matches >= Math.ceil(topicTokens.length / 2);
+}
+
+function normalizeTopicText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9#\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stemToken(token: string): string {
+  return token.length > 3 && token.endsWith("s") ? token.slice(0, -1) : token;
 }
 
 function looksEnglish(text: string): boolean {
