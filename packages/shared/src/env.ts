@@ -60,8 +60,9 @@ function parseEnvValue(value: string): string {
  * through `loadEnv()` instead of touching `process.env` directly, so a missing
  * or malformed variable fails fast at boot with a clear message.
  *
- * Secrets (CROO_SDK_KEY, X_CLIENT_SECRET, ANTHROPIC_API_KEY, OPENMODEL_API_KEY,
- * TOKEN_VAULT_KEY) live ONLY in `.env` (gitignored). Never hard-code them.
+ * Secrets (CROO_SDK_KEY, X_CLIENT_SECRET, AI_API_KEY, ANTHROPIC_API_KEY,
+ * OPENMODEL_API_KEY, TOKEN_VAULT_KEY) live ONLY in `.env` (gitignored). Never
+ * hard-code them.
  */
 const EnvSchema = z.object({
   NODE_ENV: z
@@ -90,8 +91,12 @@ const EnvSchema = z.object({
 
   // Content LLM
   LLM_PROVIDER: z
-    .enum(["auto", "mock", "anthropic", "openmodel"])
+    .enum(["auto", "mock", "ai", "anthropic", "openmodel"])
     .default("auto"),
+  AI_API_KEY: optionalStr(),
+  AI_BASE_URL: z.string().url().default("https://api.badtheorylabs.com/v1"),
+  AI_MODEL: z.string().default("btl-2"),
+  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   ANTHROPIC_API_KEY: optionalStr(),
   CONTENT_MODEL: z.string().default("claude-sonnet-4-6"),
   CONTENT_MODEL_HQ: z.string().default("claude-opus-4-8"),

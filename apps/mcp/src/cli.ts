@@ -172,6 +172,10 @@ X_OAUTH_REDIRECT_URI=http://127.0.0.1:3000/api/x/callback
 
 # Content engine. Empty keys use deterministic mock LLM.
 LLM_PROVIDER=auto
+AI_API_KEY=
+AI_BASE_URL=https://api.badtheorylabs.com/v1
+AI_MODEL=btl-2
+AI_TIMEOUT_MS=60000
 ANTHROPIC_API_KEY=
 CONTENT_MODEL=claude-sonnet-4-6
 CONTENT_MODEL_HQ=claude-opus-4-8

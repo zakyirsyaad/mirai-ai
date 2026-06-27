@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import type { Env } from "@mirai/shared";
 
 /**
@@ -7,7 +8,7 @@ import type { Env } from "@mirai/shared";
  * mock when no configured provider key is present (zero cost, no network).
  */
 export interface Llm {
-  readonly kind: "anthropic" | "openmodel" | "mock";
+  readonly kind: "anthropic" | "openmodel" | "ai" | "mock";
   /** Single-turn completion. `system` steers; `prompt` is the user turn. */
   complete(args: {
     system: string;
@@ -15,6 +16,51 @@ export interface Llm {
     model?: string;
     maxTokens?: number;
   }): Promise<string>;
+}
+
+/** OpenAI-compatible LLM for gateway/runtime providers. */
+export class OpenAiCompatibleLlm implements Llm {
+  readonly kind = "ai" as const;
+  private readonly client: OpenAI;
+
+  constructor(
+    apiKey: string,
+    private readonly defaultModel: string,
+    options: {
+      baseURL: string;
+      timeoutMs?: number;
+    },
+  ) {
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: options.baseURL,
+      timeout: options.timeoutMs ?? 60_000,
+    });
+  }
+
+  async complete(args: {
+    system: string;
+    prompt: string;
+    model?: string;
+    maxTokens?: number;
+  }): Promise<string> {
+    const res = await this.client.chat.completions.create({
+      model: args.model ?? this.defaultModel,
+      max_tokens: args.maxTokens ?? 1024,
+      messages: [
+        { role: "system", content: args.system },
+        { role: "user", content: args.prompt },
+      ],
+    });
+    const content = res.choices[0]?.message?.content;
+    if (Array.isArray(content)) {
+      return content
+        .map((part) => ("text" in part ? part.text : ""))
+        .join("")
+        .trim();
+    }
+    return (content ?? "").trim();
+  }
 }
 
 /** Real Anthropic-backed LLM. */
@@ -97,6 +143,16 @@ export class MockLlm implements Llm {
 export function createLlm(env: Env): Llm {
   if (env.LLM_PROVIDER === "mock") return new MockLlm();
 
+  if (env.LLM_PROVIDER === "ai") {
+    if (!env.AI_API_KEY) {
+      throw new Error("AI_API_KEY is required when LLM_PROVIDER=ai.");
+    }
+    return new OpenAiCompatibleLlm(env.AI_API_KEY, env.AI_MODEL, {
+      baseURL: env.AI_BASE_URL,
+      timeoutMs: env.AI_TIMEOUT_MS,
+    });
+  }
+
   if (env.LLM_PROVIDER === "openmodel") {
     if (!env.OPENMODEL_API_KEY) {
       throw new Error("OPENMODEL_API_KEY is required when LLM_PROVIDER=openmodel.");
@@ -113,6 +169,13 @@ export function createLlm(env: Env): Llm {
       throw new Error("ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic.");
     }
     return new AnthropicLlm(env.ANTHROPIC_API_KEY, env.CONTENT_MODEL);
+  }
+
+  if (env.AI_API_KEY) {
+    return new OpenAiCompatibleLlm(env.AI_API_KEY, env.AI_MODEL, {
+      baseURL: env.AI_BASE_URL,
+      timeoutMs: env.AI_TIMEOUT_MS,
+    });
   }
 
   if (env.OPENMODEL_API_KEY) {

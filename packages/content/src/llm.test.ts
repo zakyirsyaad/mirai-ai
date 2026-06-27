@@ -14,6 +14,29 @@ test("createLlm auto-selects OpenModel when its key is present", () => {
   resetEnvCache();
 });
 
+test("createLlm auto-selects generic AI before OpenModel when its key is present", () => {
+  resetEnvCache();
+  const env = loadEnv({
+    AI_API_KEY: "test-runtime-key",
+    AI_MODEL: "btl-2",
+    OPENMODEL_API_KEY: "test-openmodel-key",
+    OPENMODEL_MODEL: "deepseek-v4-flash",
+  });
+
+  assert.equal(createLlm(env).kind, "ai");
+  resetEnvCache();
+});
+
+test("createLlm requires an AI key when explicitly selected", () => {
+  resetEnvCache();
+  const env = loadEnv({
+    LLM_PROVIDER: "ai",
+  });
+
+  assert.throws(() => createLlm(env), /AI_API_KEY/);
+  resetEnvCache();
+});
+
 test("createLlm requires an OpenModel key when explicitly selected", () => {
   resetEnvCache();
   const env = loadEnv({

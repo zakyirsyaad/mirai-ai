@@ -43,3 +43,21 @@ test("loadEnv parses OpenModel LLM configuration", () => {
   assert.equal(env.OPENMODEL_MODEL, "deepseek-v4-flash");
   resetEnvCache();
 });
+
+test("loadEnv parses generic OpenAI-compatible AI configuration", () => {
+  resetEnvCache();
+  const env = loadEnv({
+    LLM_PROVIDER: "ai",
+    AI_API_KEY: "test-runtime-key",
+    AI_BASE_URL: "https://api.badtheorylabs.com/v1",
+    AI_MODEL: "btl-2",
+    AI_TIMEOUT_MS: "45000",
+  });
+
+  assert.equal(env.LLM_PROVIDER, "ai");
+  assert.equal(env.AI_API_KEY, "test-runtime-key");
+  assert.equal(env.AI_BASE_URL, "https://api.badtheorylabs.com/v1");
+  assert.equal(env.AI_MODEL, "btl-2");
+  assert.equal(env.AI_TIMEOUT_MS, 45_000);
+  resetEnvCache();
+});

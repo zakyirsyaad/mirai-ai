@@ -30,6 +30,14 @@ const patterns = [
     regex: new RegExp("lc_" + "live_[A-Za-z0-9_-]+", "g"),
   },
   {
+    name: "populated AI_API_KEY",
+    regex: new RegExp("AI_API_KEY=" + "[^\\n]*\\S", "g"),
+  },
+  {
+    name: "BadTheory Runtime gateway key",
+    regex: new RegExp("gw_" + "[A-Za-z0-9_]{20,}", "g"),
+  },
+  {
     name: "private downstream capability code",
     regex: /\b(?:PYGM|CAP-PRIVATE)-[A-Z0-9_-]{8,}\b/g,
   },

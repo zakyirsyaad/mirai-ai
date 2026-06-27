@@ -262,6 +262,8 @@ Default development mode uses mocks:
 
 - `X_MODE=mock` avoids real X API calls.
 - Empty LLM keys use the deterministic mock LLM.
+- Set `LLM_PROVIDER=ai`, `AI_API_KEY`, `AI_BASE_URL`, and `AI_MODEL=btl-2` to
+  use an OpenAI-compatible runtime such as BadTheory Runtime.
 - Set `LLM_PROVIDER=openmodel`, `OPENMODEL_API_KEY`, and
   `OPENMODEL_MODEL=deepseek-v4-flash` to use OpenModel for content generation.
 - Empty `CROO_SDK_KEY` lets the pipeline run without marketplace intake.
