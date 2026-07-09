@@ -261,6 +261,10 @@ pnpm agent:dev
 Default development mode uses mocks:
 
 - `X_MODE=mock` avoids real X API calls.
+- `X_MODE=scraper` uses the xbird REST API (no X developer account needed).
+  Operator pays via x402 USDC micropayments on Base mainnet (~$0.22/campaign).
+  Set `XBIRD_TOKEN` with the stateless token from `npx @checkra1n/xbird login`.
+- `X_MODE=real` uses the official X API v2 (requires `X_CLIENT_ID` + `X_CLIENT_SECRET`).
 - Empty LLM keys use the deterministic mock LLM.
 - Set `LLM_PROVIDER=ai`, `AI_API_KEY`, `AI_BASE_URL`, and `AI_MODEL=btl-2` to
   use an OpenAI-compatible runtime such as BadTheory Runtime.
