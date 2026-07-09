@@ -1,7 +1,6 @@
 import { loadEnv, decryptToken, encryptToken, isScraperXMode } from "@mirai/shared";
 import { refreshTokens } from "@mirai/x";
 import { prisma } from "@mirai/db";
-import { xClient } from "./clients.js";
 
 /**
  * Per-campaign X credential access.
@@ -11,8 +10,9 @@ import { xClient } from "./clients.js";
  * held in plaintext at rest — only decrypted in memory for the duration of a
  * stage.
  *
- * In scraper mode, returns the operator's xbird token (no per-campaign tokens,
- * no OAuth refresh — xbird tokens are self-contained).
+ * In scraper mode, returns the buyer's xbird cookies (auth_token|ct0) from
+ * XConnection. Each buyer connects their own X account; posts go to their
+ * timeline, not the operator's.
  */
 const env = loadEnv();
 const REFRESH_SKEW_MS = 60_000; // refresh if expiring within a minute
@@ -24,16 +24,6 @@ export interface XAccess {
 }
 
 export async function getXAccess(campaignId: string): Promise<XAccess> {
-  // Scraper mode: use operator's xbird token, skip OAuth per-campaign tokens.
-  if (isScraperXMode(env) && env.XBIRD_TOKEN) {
-    const user = await xClient.getMe(env.XBIRD_TOKEN);
-    return {
-      accessToken: env.XBIRD_TOKEN,
-      xUserId: user.id,
-      xHandle: user.username,
-    };
-  }
-
   const campaign = await prisma.campaign.findUniqueOrThrow({
     where: { id: campaignId },
     include: { session: { include: { xConnection: true } } },
@@ -41,6 +31,27 @@ export async function getXAccess(campaignId: string): Promise<XAccess> {
   const conn = campaign.session.xConnection;
   if (!conn) {
     throw new Error(`Campaign ${campaignId} has no connected X account.`);
+  }
+
+  // Scraper mode: use buyer's xbird cookies from XConnection.
+  if (isScraperXMode(env)) {
+    if (!env.TOKEN_VAULT_KEY) {
+      throw new Error("TOKEN_VAULT_KEY missing — cannot decrypt xbird cookies.");
+    }
+    if (!conn.encryptedXbirdAuthToken || !conn.encryptedXbirdCt0) {
+      throw new Error(
+        `Campaign ${campaignId} buyer has no xbird cookies. ` +
+          `They need to connect their X account in scraper mode first.`,
+      );
+    }
+    const authToken = decryptToken(conn.encryptedXbirdAuthToken, env.TOKEN_VAULT_KEY);
+    const ct0 = decryptToken(conn.encryptedXbirdCt0, env.TOKEN_VAULT_KEY);
+    return {
+      // ScraperXClient expects "auth_token|ct0" format
+      accessToken: `${authToken}|${ct0}`,
+      xUserId: conn.xUserId,
+      xHandle: conn.xHandle,
+    };
   }
 
   if (!env.TOKEN_VAULT_KEY) {

@@ -31,6 +31,19 @@ export class ScraperXClient implements XClient {
     this.baseUrl = baseUrl ?? loadEnv().XBIRD_API_URL;
   }
 
+  private authHeaders(token: string): Record<string, string> {
+    // Stateless token (xbird_sk_...) → single header
+    if (token.startsWith("xbird_sk_")) {
+      return { "X-Encryption-Key": token };
+    }
+    // Raw cookies format: "auth_token|ct0"
+    const [authToken, ct0] = token.split("|");
+    return {
+      "X-Twitter-Auth-Token": authToken ?? "",
+      "X-Twitter-CT0": ct0 ?? "",
+    };
+  }
+
   private async req<T>(
     key: string,
     path: string,
@@ -40,7 +53,7 @@ export class ScraperXClient implements XClient {
     const res = await fetch(`${this.baseUrl}${path}`, {
       ...init,
       headers: {
-        "X-Encryption-Key": token,
+        ...this.authHeaders(token),
         "Content-Type": "application/json",
         ...(init?.headers ?? {}),
       },

@@ -49,6 +49,9 @@ model XConnection {
   scope                 String
   accessTokenExpiresAt  DateTime
   tweetCount            Int           @default(0) // used to detect cold-start (empty account)
+  // xbird scraper mode — encrypted browser cookies per-buyer
+  encryptedXbirdAuthToken String?    // AES-256-GCM encrypted auth_token cookie
+  encryptedXbirdCt0       String?    // AES-256-GCM encrypted ct0 cookie
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 

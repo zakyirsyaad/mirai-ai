@@ -18,6 +18,7 @@ import {
   assertLicenseScope,
   decryptToken,
   encryptToken,
+  isScraperXMode,
   loadEnv,
   type A2ADelegationTaskType,
   type ContentAgentDeliverable,
@@ -87,7 +88,10 @@ export async function hostedHealth(): Promise<unknown> {
   };
 }
 
-export async function hostedConnectX(licenseKey: string): Promise<unknown> {
+export async function hostedConnectX(
+  licenseKey: string,
+  opts?: { authToken?: string; ct0?: string },
+): Promise<unknown> {
   const access = await ensureHostedAccess(licenseKey);
   if (env.X_MODE === "mock") {
     const x = createXClient(env);
@@ -102,6 +106,31 @@ export async function hostedConnectX(licenseKey: string): Promise<unknown> {
       tweetCount: me.tweetCount,
     });
     return { ok: true, mode: "mock", xHandle: me.username, xUserId: me.id };
+  }
+
+  // Scraper mode: buyer provides their xbird cookies directly.
+  if (isScraperXMode(env)) {
+    if (!opts?.authToken || !opts?.ct0) {
+      throw new Error(
+        "Scraper mode requires buyer's X cookies (authToken + ct0). " +
+          "Get them from browser DevTools → Application → Cookies → x.com.",
+      );
+    }
+    const x = createXClient(env);
+    const cookieToken = `${opts.authToken}|${opts.ct0}`;
+    const me = await x.getMe(cookieToken);
+    await upsertXConnection(access.sessionId, {
+      xUserId: me.id,
+      xHandle: me.username,
+      accessToken: cookieToken,
+      refreshToken: "scraper-n/a",
+      scope: "scraper",
+      expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+      tweetCount: me.tweetCount,
+      xbirdAuthToken: opts.authToken,
+      xbirdCt0: opts.ct0,
+    });
+    return { ok: true, mode: "scraper", xHandle: me.username, xUserId: me.id };
   }
 
   if (!env.X_CLIENT_ID) throw new Error("X_CLIENT_ID is required.");
@@ -570,9 +599,17 @@ async function upsertXConnection(
     scope: string;
     expiresAt: number;
     tweetCount: number;
+    xbirdAuthToken?: string;
+    xbirdCt0?: string;
   },
 ): Promise<void> {
   if (!env.TOKEN_VAULT_KEY) throw new Error("TOKEN_VAULT_KEY is required.");
+  const encryptedXbirdAuthToken = data.xbirdAuthToken
+    ? encryptToken(data.xbirdAuthToken, env.TOKEN_VAULT_KEY)
+    : undefined;
+  const encryptedXbirdCt0 = data.xbirdCt0
+    ? encryptToken(data.xbirdCt0, env.TOKEN_VAULT_KEY)
+    : undefined;
   await prisma.xConnection.upsert({
     where: { sessionId },
     create: {
@@ -587,6 +624,8 @@ async function upsertXConnection(
       scope: data.scope,
       accessTokenExpiresAt: new Date(data.expiresAt),
       tweetCount: data.tweetCount,
+      ...(encryptedXbirdAuthToken && { encryptedXbirdAuthToken }),
+      ...(encryptedXbirdCt0 && { encryptedXbirdCt0 }),
     },
     update: {
       xUserId: data.xUserId,
@@ -599,6 +638,8 @@ async function upsertXConnection(
       scope: data.scope,
       accessTokenExpiresAt: new Date(data.expiresAt),
       tweetCount: data.tweetCount,
+      ...(encryptedXbirdAuthToken && { encryptedXbirdAuthToken }),
+      ...(encryptedXbirdCt0 && { encryptedXbirdCt0 }),
     },
   });
 }
