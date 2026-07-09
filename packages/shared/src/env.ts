@@ -81,13 +81,20 @@ const EnvSchema = z.object({
   CROO_A2A_WORKBENCH_AGENT_NAME: optionalStr(),
 
   // X (Twitter)
-  X_MODE: z.enum(["mock", "real"]).default("mock"),
+  X_MODE: z.enum(["mock", "real", "scraper"]).default("mock"),
   X_CLIENT_ID: optionalStr(),
   X_CLIENT_SECRET: optionalStr(),
   X_OAUTH_REDIRECT_URI: z
     .string()
     .url()
     .default("http://localhost:3000/api/x/callback"),
+
+  // xbird REST API (scraper mode — operator pays via x402 USDC on Base)
+  XBIRD_TOKEN: optionalStr(), // xbird stateless token (xbird_sk_...)
+  XBIRD_API_URL: z
+    .string()
+    .url()
+    .default("https://xbirdapi.up.railway.app"),
 
   // Content LLM
   LLM_PROVIDER: z
@@ -154,4 +161,9 @@ export function resetEnvCache(): void {
 /** True when the real X adapter should be used (credentials present + mode=real). */
 export function isRealXMode(env: Env): boolean {
   return env.X_MODE === "real" && !!env.X_CLIENT_ID && !!env.X_CLIENT_SECRET;
+}
+
+/** True when the xbird scraper adapter should be used (token present + mode=scraper). */
+export function isScraperXMode(env: Env): boolean {
+  return env.X_MODE === "scraper" && !!env.XBIRD_TOKEN;
 }

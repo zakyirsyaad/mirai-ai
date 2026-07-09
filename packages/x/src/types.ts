@@ -51,7 +51,7 @@ export interface PostResult {
  * (which owns token storage + refresh) stays in control of credentials.
  */
 export interface XClient {
-  readonly mode: "mock" | "real";
+  readonly mode: "mock" | "real" | "scraper";
 
   /** Identify the authenticated user (also yields tweetCount for cold-start). */
   getMe(accessToken: string): Promise<XUser>;

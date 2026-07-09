@@ -1,6 +1,7 @@
-import { loadEnv, decryptToken, encryptToken } from "@mirai/shared";
+import { loadEnv, decryptToken, encryptToken, isScraperXMode } from "@mirai/shared";
 import { refreshTokens } from "@mirai/x";
 import { prisma } from "@mirai/db";
+import { xClient } from "./clients.js";
 
 /**
  * Per-campaign X credential access.
@@ -9,6 +10,9 @@ import { prisma } from "@mirai/db";
  * (and re-encrypting) transparently when it's near expiry. Tokens are never
  * held in plaintext at rest — only decrypted in memory for the duration of a
  * stage.
+ *
+ * In scraper mode, returns the operator's xbird token (no per-campaign tokens,
+ * no OAuth refresh — xbird tokens are self-contained).
  */
 const env = loadEnv();
 const REFRESH_SKEW_MS = 60_000; // refresh if expiring within a minute
@@ -20,6 +24,16 @@ export interface XAccess {
 }
 
 export async function getXAccess(campaignId: string): Promise<XAccess> {
+  // Scraper mode: use operator's xbird token, skip OAuth per-campaign tokens.
+  if (isScraperXMode(env) && env.XBIRD_TOKEN) {
+    const user = await xClient.getMe(env.XBIRD_TOKEN);
+    return {
+      accessToken: env.XBIRD_TOKEN,
+      xUserId: user.id,
+      xHandle: user.username,
+    };
+  }
+
   const campaign = await prisma.campaign.findUniqueOrThrow({
     where: { id: campaignId },
     include: { session: { include: { xConnection: true } } },

@@ -3,4 +3,5 @@ export * from "./oauth.js";
 export * from "./ratelimit.js";
 export * from "./mock.js";
 export * from "./real.js";
+export * from "./scraper.js";
 export * from "./factory.js";
