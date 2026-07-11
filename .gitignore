@@ -3,6 +3,8 @@
 .env.production
 .env.local
 .env.*.local
+.env.backup*
+.env.*.backup*
 *.pem
 *.key
 
