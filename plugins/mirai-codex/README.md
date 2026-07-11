@@ -62,10 +62,8 @@ the final approval gate before posting starts.
 
 ## Hosted API
 
-During VPS testing, the plugin points to:
+The plugin points to the TLS-protected hosted API:
 
 ```text
-http://mirai.43-129-56-85.sslip.io
+https://mirai.43-129-56-85.sslip.io
 ```
-
-Switch this to `https://api.mirai-agent.com` after the production API domain is live.

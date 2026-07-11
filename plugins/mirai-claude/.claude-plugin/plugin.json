@@ -1,6 +1,6 @@
 {
   "name": "mirai-claude",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude Code plugin for Mirai AI - Autonomous Content Agent.",
   "author": {
     "name": "Mirai AI",
@@ -31,7 +31,7 @@
         "mcp"
       ],
       "env": {
-        "MIRAI_API_URL": "http://mirai.43-129-56-85.sslip.io"
+        "MIRAI_API_URL": "https://mirai.43-129-56-85.sslip.io"
       }
     }
   }

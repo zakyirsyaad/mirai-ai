@@ -1,9 +1,25 @@
 {
   "name": "@mirai-agent/mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": false,
   "description": "Mirai MCP client for CROO-licensed autonomous X campaigns.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zakyirsyaad/mirai-ai.git",
+    "directory": "apps/mcp"
+  },
+  "homepage": "https://github.com/zakyirsyaad/mirai-ai#readme",
+  "bugs": {
+    "url": "https://github.com/zakyirsyaad/mirai-ai/issues"
+  },
+  "keywords": [
+    "mcp",
+    "croo",
+    "x",
+    "twitter",
+    "ai-agent"
+  ],
   "type": "module",
   "bin": {
     "mirai": "dist/cli.js"
@@ -19,11 +35,17 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
+    "test": "pnpm build && node --test test/cli.unit.test.mjs test/config.unit.test.mjs test/hosted-client.integration.test.mjs test/hosted-client.security.test.mjs test/license.unit.test.mjs test/mcp-server.integration.test.mjs",
+    "test:coverage": "pnpm build && c8 --all --include 'dist/**/*.js' --check-coverage --lines 80 --branches 80 node --test test/cli.unit.test.mjs test/config.unit.test.mjs test/hosted-client.integration.test.mjs test/hosted-client.security.test.mjs test/license.unit.test.mjs test/mcp-server.integration.test.mjs",
+    "test:unit": "pnpm build && node --test test/cli.unit.test.mjs test/config.unit.test.mjs test/license.unit.test.mjs",
+    "test:integration": "pnpm build && node --test test/hosted-client.integration.test.mjs test/mcp-server.integration.test.mjs",
+    "test:security": "pnpm build && node --test test/hosted-client.security.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist .turbo"
   },
   "files": [
     "dist",
+    "LICENSE",
     "README.md",
     "package.json"
   ],
@@ -38,6 +60,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "c8": "^11.0.0",
     "typescript": "^5.7.2"
   }
 }

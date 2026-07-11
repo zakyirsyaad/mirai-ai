@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -20,10 +21,10 @@ import {
   updateContentItem,
 } from "./tools.js";
 
-export async function runMcpServer(): Promise<void> {
+export function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "mirai",
-    version: "0.1.0",
+    version: readPackageVersion(),
   });
 
   server.tool(
@@ -172,8 +173,23 @@ export async function runMcpServer(): Promise<void> {
     async () => json(await generateVoiceIdeas()),
   );
 
+  return server;
+}
+
+export async function runMcpServer(): Promise<void> {
+  const server = createMcpServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
+}
+
+function readPackageVersion(): string {
+  const value = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  ) as { version?: unknown };
+  if (typeof value.version !== "string" || !value.version) {
+    throw new Error("Mirai package version is missing.");
+  }
+  return value.version;
 }
 
 function json(value: unknown): {

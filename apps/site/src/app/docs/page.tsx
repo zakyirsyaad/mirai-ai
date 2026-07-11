@@ -380,8 +380,8 @@ export default function DocsPage() {
             <AccordionContent>
               Normal users should not edit MCP config manually. For staging or
               VPS testing only, use the advanced runtime config generator to
-              override `MIRAI_API_URL`. Production should point to
-              `https://api.mirai-agent.com` once the domain is ready.
+              override `MIRAI_API_URL`. Remote endpoints must use HTTPS;
+              plain HTTP is accepted only for loopback development.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="expired">

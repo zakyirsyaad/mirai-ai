@@ -1,24 +1,27 @@
 #!/usr/bin/env node
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { runMcpServer } from "./mcp-server.js";
 import { MIRAI_HOME } from "./license-store.js";
 import { healthcheck } from "./tools.js";
 import {
   DEFAULT_MIRAI_API_URL,
   DEFAULT_MIRAI_LICENSE_PUBLIC_KEY,
+  resolveMiraiApiUrl,
 } from "./config.js";
 
-const [, , command = "help", ...args] = process.argv;
+if (isMainModule()) {
+  const [, , command = "help", ...args] = process.argv;
+  void main(command, args).catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}
 
-void main(command, args).catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-});
-
-async function main(cmd: string, args: string[]): Promise<void> {
+export async function main(cmd: string, args: string[]): Promise<void> {
   switch (cmd) {
     case "doctor":
       console.log(JSON.stringify(await healthcheck(), null, 2));
@@ -47,13 +50,24 @@ async function main(cmd: string, args: string[]): Promise<void> {
   }
 }
 
+function isMainModule(): boolean {
+  const entryPath = process.argv[1];
+  if (!entryPath) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(entryPath)).href;
+  } catch {
+    return import.meta.url === pathToFileURL(entryPath).href;
+  }
+}
+
 async function initConfig(args: string[]): Promise<void> {
   const hosted = args.includes("--hosted");
   const force = args.includes("--force");
-  const apiUrl = readFlag(args, "--api-url") ?? DEFAULT_MIRAI_API_URL;
+  const apiUrl = resolveMiraiApiUrl(
+    readFlag(args, "--api-url") ?? DEFAULT_MIRAI_API_URL,
+  );
   await mkdir(MIRAI_HOME, { recursive: true, mode: 0o700 });
   const composePath = join(MIRAI_HOME, "docker-compose.yml");
-  const envPath = ".env";
   const homeEnvPath = join(MIRAI_HOME, ".env");
   await writeFile(
     composePath,
@@ -65,24 +79,18 @@ async function initConfig(args: string[]): Promise<void> {
       POSTGRES_PASSWORD: mirai
       POSTGRES_DB: mirai
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - mirai-postgres:/var/lib/postgresql/data
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 volumes:
   mirai-postgres:
 `,
     { mode: 0o600 },
   );
-  if (force || !existsSync(envPath)) {
-    await writeFile(envPath, await envTemplate({ hosted, apiUrl }), { mode: 0o600 });
-    console.log(`Wrote ${envPath}`);
-  } else {
-    console.log(`${envPath} already exists; left it unchanged.`);
-  }
   if (force || !existsSync(homeEnvPath)) {
     await writeFile(homeEnvPath, await envTemplate({ hosted, apiUrl }), { mode: 0o600 });
     console.log(`Wrote ${homeEnvPath}`);
@@ -154,7 +162,7 @@ async function envTemplate(args: {
   apiUrl: string;
 }): Promise<string> {
   const existingPublicKey =
-    (await readExistingEnv("MIRAI_LICENSE_PUBLIC_KEY")) ??
+    (await readExistingHomeEnv("MIRAI_LICENSE_PUBLIC_KEY")) ??
     DEFAULT_MIRAI_LICENSE_PUBLIC_KEY;
   return `# Mirai ${args.hosted ? "hosted" : "local"} MCP runtime
 NODE_ENV=development
@@ -205,13 +213,12 @@ function readFlag(args: string[], name: string): string | null {
   return null;
 }
 
-async function readExistingEnv(key: string): Promise<string | null> {
-  for (const path of [".env", join(MIRAI_HOME, ".env")]) {
-    if (!existsSync(path)) continue;
-    const text = await readFile(path, "utf8");
-    const match = text.match(new RegExp(`^${key}=(.*)$`, "m"));
-    if (match?.[1]?.trim()) return match[1].trim();
-  }
+async function readExistingHomeEnv(key: string): Promise<string | null> {
+  const path = join(MIRAI_HOME, ".env");
+  if (!existsSync(path)) return null;
+  const text = await readFile(path, "utf8");
+  const match = text.match(new RegExp(`^${key}=(.*)$`, "m"));
+  if (match?.[1]?.trim()) return match[1].trim();
   return null;
 }
 

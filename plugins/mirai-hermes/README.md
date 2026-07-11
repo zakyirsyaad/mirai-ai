@@ -9,7 +9,7 @@ hermes plugins install zakyirsyaad/mirai-ai --enable
 Then register the Mirai runtime once:
 
 ```bash
-hermes mcp add mirai --command npx --env MIRAI_API_URL=http://mirai.43-129-56-85.sslip.io --args -y @mirai-agent/mcp@latest mcp
+hermes mcp add mirai --command npx --env MIRAI_API_URL=https://mirai.43-129-56-85.sslip.io --args -y @mirai-agent/mcp@latest mcp
 hermes mcp test mirai
 ```
 

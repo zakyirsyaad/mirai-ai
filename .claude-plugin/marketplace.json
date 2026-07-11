@@ -11,7 +11,7 @@
       "name": "mirai-claude",
       "source": "./plugins/mirai-claude",
       "description": "Claude Code/CLI plugin for Mirai AI - Autonomous Content Agent.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Mirai AI"
       },

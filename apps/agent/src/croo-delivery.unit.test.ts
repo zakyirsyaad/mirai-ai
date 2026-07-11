@@ -19,7 +19,7 @@ test("formats CROO license delivery with current plugin install flow", () => {
       docsUrl: MIRAI_DOCS_URL,
       nextSteps: MIRAI_NEXT_STEPS,
     },
-    "http://mirai.43-129-56-85.sslip.io",
+    "https://mirai.43-129-56-85.sslip.io",
   );
 
   assert.match(text, /codex plugin marketplace add zakyirsyaad\/mirai-ai/);

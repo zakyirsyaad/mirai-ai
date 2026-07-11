@@ -24,6 +24,7 @@ import {
   createEntitlementRequestHandler,
   type HostedHandlers,
 } from "./entitlement-handler.js";
+import { ENTITLEMENT_BIND_HOST } from "./entitlement-server-config.js";
 
 const env = loadEnv();
 
@@ -51,7 +52,7 @@ const handlers: HostedHandlers = {
 export function startEntitlementServer(): { close: () => void } {
   const server = createServer(createEntitlementRequestHandler(handlers));
 
-  server.listen(env.MIRAI_ENTITLEMENT_PORT, () => {
+  server.listen(env.MIRAI_ENTITLEMENT_PORT, ENTITLEMENT_BIND_HOST, () => {
     console.log(
       `[entitlement] listening on http://localhost:${env.MIRAI_ENTITLEMENT_PORT}`,
     );

@@ -75,7 +75,7 @@ Hermes:
 
 ```bash
 hermes plugins install zakyirsyaad/mirai-ai --enable
-hermes mcp add mirai --command npx --env MIRAI_API_URL=http://mirai.43-129-56-85.sslip.io --args -y @mirai-agent/mcp@latest mcp
+hermes mcp add mirai --command npx --env MIRAI_API_URL=https://mirai.43-129-56-85.sslip.io --args -y @mirai-agent/mcp@latest mcp
 ```
 
 After installing a plugin/profile, restart the client and run Mirai:
@@ -321,7 +321,7 @@ Site env examples:
 
 ```bash
 NEXT_PUBLIC_CROO_MARKETPLACE_URL=
-NEXT_PUBLIC_MIRAI_API_URL=http://mirai.43-129-56-85.sslip.io
+NEXT_PUBLIC_MIRAI_API_URL=https://mirai.43-129-56-85.sslip.io
 NEXT_PUBLIC_NPM_PACKAGE_NAME=@mirai-agent/mcp
 ```
 
@@ -523,6 +523,9 @@ For real X OAuth, configure the X app callback to:
 <MIRAI_API_URL>/oauth/x/callback
 ```
 
+The checked-in production Nginx vhost proxies to `127.0.0.1:8797`, so keep
+`MIRAI_ENTITLEMENT_PORT=8797` on that deployment.
+
 ## Scripts
 
 ```bash
@@ -554,8 +557,9 @@ pnpm site:build
 - [x] Hosted worker mode
 - [x] Public website and docs scaffold
 - [ ] Final CROO Agent Store listing polish
-- [ ] Real-domain HTTPS deployment
-- [ ] Real X OAuth production callback
+- [x] TLS-protected hosted deployment (temporary `sslip.io` hostname)
+- [x] Real X OAuth HTTPS callback
+- [ ] Branded production hostname
 - [ ] Demo video
 - [ ] DoraHacks submission
 

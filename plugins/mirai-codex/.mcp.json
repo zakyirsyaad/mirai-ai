@@ -8,7 +8,7 @@
         "mcp"
       ],
       "env": {
-        "MIRAI_API_URL": "http://mirai.43-129-56-85.sslip.io"
+        "MIRAI_API_URL": "https://mirai.43-129-56-85.sslip.io"
       }
     }
   }

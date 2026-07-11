@@ -1,6 +1,18 @@
-import { loadConfig } from "./config.js";
+import { loadConfig, resolveMiraiApiUrl } from "./config.js";
 import { readLocalLicense, writeLocalLicense } from "./license-store.js";
 import { verifyLicense } from "./license.js";
+
+interface HostedRequestArgs {
+  method: "DELETE" | "GET" | "PATCH" | "POST";
+  body?: unknown;
+  licenseKey?: string | null;
+}
+
+interface HostedRequesterDependencies {
+  loadConfig?: typeof loadConfig;
+  readLocalLicense?: typeof readLocalLicense;
+  fetch?: typeof fetch;
+}
 
 export function isHostedMode(): boolean {
   return true;
@@ -22,8 +34,9 @@ export async function hostedHealthcheck(): Promise<unknown> {
   const config = loadConfig();
   let api: unknown;
   try {
-    const res = await fetch(`${config.apiUrl.replace(/\/$/, "")}/health`, {
+    const res = await fetch(resolveHostedUrl(config.apiUrl, "/health"), {
       signal: AbortSignal.timeout(5_000),
+      redirect: "error",
     });
     api = await res.json();
   } catch (err) {
@@ -52,7 +65,7 @@ export async function hostedConnectX(): Promise<unknown> {
     "authUrl" in result &&
     typeof result.authUrl === "string"
   ) {
-    openBrowser(result.authUrl);
+    openBrowser(resolveXAuthorizationUrl(result.authUrl));
   }
   return result;
 }
@@ -117,39 +130,75 @@ export async function hostedGenerateVoiceIdeas(): Promise<unknown> {
   return request("/mcp/ideas", { method: "POST" });
 }
 
-async function request(
-  path: string,
-  args: {
-    method: "DELETE" | "GET" | "PATCH" | "POST";
-    body?: unknown;
-    licenseKey?: string | null;
-  },
-): Promise<unknown> {
-  const config = loadConfig();
-  const licenseKey =
-    args.licenseKey === undefined ? await requireLocalLicense() : args.licenseKey;
-  const res = await fetch(`${config.apiUrl.replace(/\/$/, "")}${path}`, {
-    method: args.method,
-    signal: AbortSignal.timeout(10_000),
-    headers: {
-      ...(licenseKey ? { Authorization: `Bearer ${licenseKey}` } : {}),
-      ...(args.body ? { "Content-Type": "application/json" } : {}),
-    },
-    body: args.body ? JSON.stringify(args.body) : undefined,
-  });
-  const json = (await res.json()) as unknown;
-  if (!res.ok) {
-    const message =
-      json && typeof json === "object" && "error" in json
-        ? String(json.error)
-        : `Mirai hosted API failed (${res.status})`;
-    throw new Error(message);
-  }
-  return json;
+export function createHostedRequester(
+  dependencies: HostedRequesterDependencies = {},
+): (path: string, args: HostedRequestArgs) => Promise<unknown> {
+  const loadConfigImpl = dependencies.loadConfig ?? loadConfig;
+  const readLocalLicenseImpl = dependencies.readLocalLicense ?? readLocalLicense;
+  const fetchImpl = dependencies.fetch ?? fetch;
+
+  return async (path: string, args: HostedRequestArgs): Promise<unknown> => {
+    const config = loadConfigImpl();
+    const url = resolveHostedUrl(config.apiUrl, path);
+    const licenseKey =
+      args.licenseKey === undefined
+        ? await requireLicense(readLocalLicenseImpl)
+        : args.licenseKey;
+    const res = await fetchImpl(url, {
+      method: args.method,
+      signal: AbortSignal.timeout(10_000),
+      redirect: "error",
+      headers: {
+        ...(licenseKey ? { Authorization: `Bearer ${licenseKey}` } : {}),
+        ...(args.body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: args.body ? JSON.stringify(args.body) : undefined,
+    });
+    const json = (await res.json()) as unknown;
+    if (!res.ok) {
+      const message =
+        json && typeof json === "object" && "error" in json
+          ? String(json.error)
+          : `Mirai hosted API failed (${res.status})`;
+      throw new Error(message);
+    }
+    return json;
+  };
 }
 
-async function requireLocalLicense(): Promise<string> {
-  const licenseKey = await readLocalLicense();
+const request = createHostedRequester();
+
+function resolveHostedUrl(apiUrl: string, path: string): string {
+  if (!path.startsWith("/") || path.startsWith("//")) {
+    throw new Error("Mirai hosted request path must be relative to the API origin.");
+  }
+  return `${resolveMiraiApiUrl(apiUrl)}${path}`;
+}
+
+export function resolveXAuthorizationUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Mirai received an invalid X authorization URL.");
+  }
+  const expectedHost = url.hostname === "x.com" || url.hostname === "twitter.com";
+  if (
+    url.protocol !== "https:" ||
+    !expectedHost ||
+    url.pathname !== "/i/oauth2/authorize" ||
+    url.username ||
+    url.password
+  ) {
+    throw new Error("Mirai received an unexpected X authorization URL.");
+  }
+  return url.toString();
+}
+
+async function requireLicense(
+  readLicense: typeof readLocalLicense,
+): Promise<string> {
+  const licenseKey = await readLicense();
   if (!licenseKey) {
     throw new Error("Mirai is not activated. Run mirai_activate_license first.");
   }
@@ -160,8 +209,13 @@ function openBrowser(url: string): void {
   void import("node:child_process").then(({ spawn }) => {
     const platform = process.platform;
     const command =
-      platform === "darwin" ? "open" : platform === "win32" ? "cmd" : "xdg-open";
-    const args = platform === "win32" ? ["/c", "start", "", url] : [url];
+      platform === "darwin"
+        ? "open"
+        : platform === "win32"
+          ? "rundll32"
+          : "xdg-open";
+    const args =
+      platform === "win32" ? ["url.dll,FileProtocolHandler", url] : [url];
     const child = spawn(command, args, { stdio: "ignore", detached: true });
     child.unref();
   });
